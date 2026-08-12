@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.cibertec.sga.common.AbstractIntegrationTest;
 import tools.jackson.databind.ObjectMapper;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -30,21 +31,34 @@ class BusinessTypeIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    private String authHeader;
+
+    @BeforeEach
+    void loginAsAdmin() throws Exception {
+        MvcResult login = mockMvc.perform(
+            post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content("""
+                {"username": "admin", "password": "Admin123!"}
+                """)
+        ).andReturn();
+        String accessToken = objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asText();
+        authHeader = "Bearer " + accessToken;
+    }
+
     @Test
     void createThenAppearsInListAndGetByUuid() throws Exception {
         MvcResult created = mockMvc.perform(
-            post(BASE_URL).contentType(MediaType.APPLICATION_JSON).content("""
+            post(BASE_URL).header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"name": "Abarrotes"}
                 """)
         ).andExpect(status().isCreated()).andReturn();
 
         String uuid = objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asText();
 
-        mockMvc.perform(get(BASE_URL + "/{uuid}", uuid))
+        mockMvc.perform(get(BASE_URL + "/{uuid}", uuid).header("Authorization", authHeader))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.name").value("Abarrotes"));
 
-        mockMvc.perform(get(BASE_URL))
+        mockMvc.perform(get(BASE_URL).header("Authorization", authHeader))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$", org.hamcrest.Matchers.hasItem(
                 org.hamcrest.Matchers.hasEntry("name", "Abarrotes")
@@ -54,13 +68,13 @@ class BusinessTypeIntegrationTest extends AbstractIntegrationTest {
     @Test
     void createWithDuplicateNameReturnsConflict() throws Exception {
         mockMvc.perform(
-            post(BASE_URL).contentType(MediaType.APPLICATION_JSON).content("""
+            post(BASE_URL).header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"name": "Ferreteria"}
                 """)
         ).andExpect(status().isCreated());
 
         mockMvc.perform(
-            post(BASE_URL).contentType(MediaType.APPLICATION_JSON).content("""
+            post(BASE_URL).header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"name": "Ferreteria"}
                 """)
         )
@@ -71,7 +85,7 @@ class BusinessTypeIntegrationTest extends AbstractIntegrationTest {
     @Test
     void createWithBlankNameReturnsBadRequest() throws Exception {
         mockMvc.perform(
-            post(BASE_URL).contentType(MediaType.APPLICATION_JSON).content("""
+            post(BASE_URL).header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"name": ""}
                 """)
         ).andExpect(status().isBadRequest());
@@ -80,16 +94,19 @@ class BusinessTypeIntegrationTest extends AbstractIntegrationTest {
     @Test
     void updateExistingBusinessTypeChangesName() throws Exception {
         MvcResult created = mockMvc.perform(
-            post(BASE_URL).contentType(MediaType.APPLICATION_JSON).content("""
+            post(BASE_URL).header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"name": "Ropa"}
                 """)
         ).andExpect(status().isCreated()).andReturn();
         String uuid = objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asText();
 
         mockMvc.perform(
-            put(BASE_URL + "/{uuid}", uuid).contentType(MediaType.APPLICATION_JSON).content("""
-                {"name": "Ropa y calzado"}
-                """)
+            put(BASE_URL + "/{uuid}", uuid)
+                .header("Authorization", authHeader)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"name": "Ropa y calzado"}
+                    """)
         )
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.name").value("Ropa y calzado"));
@@ -99,6 +116,7 @@ class BusinessTypeIntegrationTest extends AbstractIntegrationTest {
     void updateNonExistentUuidReturnsNotFound() throws Exception {
         mockMvc.perform(
             put(BASE_URL + "/{uuid}", UUID.randomUUID())
+                .header("Authorization", authHeader)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {"name": "No existe"}
@@ -109,13 +127,15 @@ class BusinessTypeIntegrationTest extends AbstractIntegrationTest {
     @Test
     void deleteExistingBusinessTypeThenGetReturnsNotFound() throws Exception {
         MvcResult created = mockMvc.perform(
-            post(BASE_URL).contentType(MediaType.APPLICATION_JSON).content("""
+            post(BASE_URL).header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"name": "Electrodomesticos"}
                 """)
         ).andExpect(status().isCreated()).andReturn();
         String uuid = objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asText();
 
-        mockMvc.perform(delete(BASE_URL + "/{uuid}", uuid)).andExpect(status().isNoContent());
-        mockMvc.perform(get(BASE_URL + "/{uuid}", uuid)).andExpect(status().isNotFound());
+        mockMvc.perform(delete(BASE_URL + "/{uuid}", uuid).header("Authorization", authHeader))
+            .andExpect(status().isNoContent());
+        mockMvc.perform(get(BASE_URL + "/{uuid}", uuid).header("Authorization", authHeader))
+            .andExpect(status().isNotFound());
     }
 }
