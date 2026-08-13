@@ -21,6 +21,15 @@ public interface IExpenseRepository {
     Optional<Expense> findByUuid(UUID uuid);
 
     /**
+     * Igual que {@link #findByUuid(UUID)}, pero toma un bloqueo pesimista de fila
+     * ({@code SELECT ... FOR UPDATE}) sobre el egreso dentro de la transacción del llamador —
+     * evita la carrera entre "anular" y "procesar" concurrentes sobre el mismo egreso pendiente
+     * (RNF-04). Solo debe usarse dentro de un método {@code @Transactional} inmediatamente antes
+     * de validar y mutar el estado.
+     */
+    Optional<Expense> findByUuidForUpdate(UUID uuid);
+
+    /**
      * Lista egresos, opcionalmente filtrados por año/mes de {@code ExpenseDate} (RF-30, "por
      * mes").
      */

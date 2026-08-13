@@ -39,7 +39,7 @@ class ProviderIntegrationTest extends AbstractIntegrationTest {
                 {"username": "admin", "password": "Admin123!"}
                 """)
         ).andReturn();
-        String accessToken = objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asText();
+        String accessToken = objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asString();
         authHeader = "Bearer " + accessToken;
     }
 
@@ -49,7 +49,7 @@ class ProviderIntegrationTest extends AbstractIntegrationTest {
                 {"name": "%s", "document": "20123456789"}
                 """.formatted(name))
         ).andExpect(status().isCreated()).andReturn();
-        return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asText();
+        return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asString();
     }
 
     @Test

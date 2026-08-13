@@ -1,6 +1,7 @@
 package com.cibertec.sga.bankexchange.infrastructure.persistence;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -43,4 +44,10 @@ public interface BankExchangeJpaRepository extends JpaRepository<BankExchangeEnt
           AND (CAST(:date AS date) IS NULL OR be."DepositDate" = CAST(:date AS date))
         """)
     Page<BankExchangeRow> search(@Param("bankUuid") UUID bankUuid, @Param("date") LocalDate date, Pageable pageable);
+
+    @Query(nativeQuery = true, value = ROW_SELECT + """
+        WHERE be."DepositDate" BETWEEN :startDate AND :endDate
+        ORDER BY be."DepositDate", be."Id"
+        """)
+    List<BankExchangeRow> findRowsByDepositDateBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 }

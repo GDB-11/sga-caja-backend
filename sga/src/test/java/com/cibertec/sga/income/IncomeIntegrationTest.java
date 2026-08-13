@@ -40,17 +40,17 @@ class IncomeIntegrationTest extends AbstractIntegrationTest {
                 {"username": "admin", "password": "Admin123!"}
                 """)
         ).andReturn();
-        authHeader = "Bearer " + objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asText();
+        authHeader = "Bearer " + objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asString();
 
         MvcResult cashierLogin = mockMvc.perform(
             post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content("""
                 {"username": "cashier", "password": "Cashier123!"}
                 """)
         ).andReturn();
-        cashierAuthHeader = "Bearer " + objectMapper.readTree(cashierLogin.getResponse().getContentAsString()).get("accessToken").asText();
+        cashierAuthHeader = "Bearer " + objectMapper.readTree(cashierLogin.getResponse().getContentAsString()).get("accessToken").asString();
 
         MvcResult categories = mockMvc.perform(get("/api/income-categories").header("Authorization", authHeader)).andReturn();
-        incomeCategoryUuid = objectMapper.readTree(categories.getResponse().getContentAsString()).get(0).get("uuid").asText();
+        incomeCategoryUuid = objectMapper.readTree(categories.getResponse().getContentAsString()).get(0).get("uuid").asString();
     }
 
     @Test
@@ -66,7 +66,7 @@ class IncomeIntegrationTest extends AbstractIntegrationTest {
             .andExpect(jsonPath("$.receipt.receiptTypeName").value("Income"))
             .andExpect(jsonPath("$.receipt.correlativeNumber").isNumber())
             .andReturn();
-        String uuid = objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asText();
+        String uuid = objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asString();
 
         mockMvc.perform(get(BASE_URL + "/{uuid}", uuid).header("Authorization", cashierAuthHeader))
             .andExpect(status().isOk())

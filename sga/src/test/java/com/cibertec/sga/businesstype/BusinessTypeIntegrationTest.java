@@ -40,7 +40,7 @@ class BusinessTypeIntegrationTest extends AbstractIntegrationTest {
                 {"username": "admin", "password": "Admin123!"}
                 """)
         ).andReturn();
-        String accessToken = objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asText();
+        String accessToken = objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asString();
         authHeader = "Bearer " + accessToken;
     }
 
@@ -52,7 +52,7 @@ class BusinessTypeIntegrationTest extends AbstractIntegrationTest {
                 """)
         ).andExpect(status().isCreated()).andReturn();
 
-        String uuid = objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asText();
+        String uuid = objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asString();
 
         mockMvc.perform(get(BASE_URL + "/{uuid}", uuid).header("Authorization", authHeader))
             .andExpect(status().isOk())
@@ -98,7 +98,7 @@ class BusinessTypeIntegrationTest extends AbstractIntegrationTest {
                 {"name": "Ropa"}
                 """)
         ).andExpect(status().isCreated()).andReturn();
-        String uuid = objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asText();
+        String uuid = objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asString();
 
         mockMvc.perform(
             put(BASE_URL + "/{uuid}", uuid)
@@ -131,7 +131,7 @@ class BusinessTypeIntegrationTest extends AbstractIntegrationTest {
                 {"name": "Electrodomesticos"}
                 """)
         ).andExpect(status().isCreated()).andReturn();
-        String uuid = objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asText();
+        String uuid = objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asString();
 
         mockMvc.perform(delete(BASE_URL + "/{uuid}", uuid).header("Authorization", authHeader))
             .andExpect(status().isNoContent());

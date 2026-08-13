@@ -43,7 +43,7 @@ class ServiceIntegrationTest extends AbstractIntegrationTest {
                 {"username": "admin", "password": "Admin123!"}
                 """)
         ).andReturn();
-        String accessToken = objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asText();
+        String accessToken = objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asString();
         authHeader = "Bearer " + accessToken;
 
         MvcResult recurrenceTypes = mockMvc.perform(get("/api/recurrence-types").header("Authorization", authHeader)).andReturn();
@@ -54,13 +54,13 @@ class ServiceIntegrationTest extends AbstractIntegrationTest {
             findUuidByName(objectMapper.readTree(chargeTargetTypes.getResponse().getContentAsString()), "Stall");
 
         MvcResult currencies = mockMvc.perform(get("/api/currencies").header("Authorization", authHeader)).andReturn();
-        currencyUuid = objectMapper.readTree(currencies.getResponse().getContentAsString()).get(0).get("uuid").asText();
+        currencyUuid = objectMapper.readTree(currencies.getResponse().getContentAsString()).get(0).get("uuid").asString();
     }
 
     private String findUuidByName(JsonNode array, String name) {
         for (JsonNode node : array) {
-            if (node.get("name").asText().equals(name)) {
-                return node.get("uuid").asText();
+            if (node.get("name").asString().equals(name)) {
+                return node.get("uuid").asString();
             }
         }
         throw new IllegalStateException("No se encontró '" + name + "' en " + array);
@@ -73,7 +73,7 @@ class ServiceIntegrationTest extends AbstractIntegrationTest {
                  "consumptionBased": false, "cost": 100.00}
                 """.formatted(name, recurrenceTypeUuid, stallChargeTargetTypeUuid, currencyUuid))
         ).andExpect(status().isCreated()).andReturn();
-        return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asText();
+        return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asString();
     }
 
     @Test
@@ -102,7 +102,7 @@ class ServiceIntegrationTest extends AbstractIntegrationTest {
                 """.formatted(recurrenceTypeUuid, stallChargeTargetTypeUuid, currencyUuid))
         ).andExpect(status().isCreated()).andReturn();
 
-        String uuid = objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asText();
+        String uuid = objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asString();
 
         mockMvc.perform(get(BASE_URL + "/{uuid}", uuid).header("Authorization", authHeader))
             .andExpect(status().isOk())

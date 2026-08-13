@@ -37,8 +37,8 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
 
         assertEquals(200, result.getResponse().getStatus());
         var body = objectMapper.readTree(result.getResponse().getContentAsString());
-        assertNotNull(body.get("accessToken").asText());
-        assertEquals("Administrator", body.get("user").get("roleName").asText());
+        assertNotNull(body.get("accessToken").asString());
+        assertEquals("Administrator", body.get("user").get("roleName").asString());
 
         Cookie refreshCookie = result.getResponse().getCookie("refreshToken");
         assertNotNull(refreshCookie);
@@ -172,6 +172,6 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
     }
 
     private String accessTokenOf(MvcResult loginResult) throws Exception {
-        return objectMapper.readTree(loginResult.getResponse().getContentAsString()).get("accessToken").asText();
+        return objectMapper.readTree(loginResult.getResponse().getContentAsString()).get("accessToken").asString();
     }
 }

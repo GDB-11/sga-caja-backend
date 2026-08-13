@@ -68,6 +68,15 @@ public interface AccountReceivableJpaRepository extends JpaRepository<AccountRec
     @Query(nativeQuery = true, value = "SELECT * FROM \"AccountReceivable\" WHERE \"Uuid\" = :uuid")
     Optional<AccountReceivableEntity> findEntityByUuid(@Param("uuid") UUID uuid);
 
+    /**
+     * Toma un bloqueo pesimista de fila sobre la cuenta por cobrar (RNF-04) — el valor devuelto
+     * no se usa, solo sirve para bloquear hasta que cualquier transacción concurrente que la
+     * tenga bloqueada confirme o revierta; el estado real se relee después vía
+     * {@link #findRowByUuid(UUID)}, que ve el dato ya actualizado por esa transacción.
+     */
+    @Query(nativeQuery = true, value = "SELECT * FROM \"AccountReceivable\" WHERE \"Uuid\" = :uuid FOR UPDATE")
+    Optional<AccountReceivableEntity> lockEntityByUuid(@Param("uuid") UUID uuid);
+
     String SUMMARY_ROW_SELECT = """
         SELECT ar."Uuid" AS uuid,
                sv."Uuid" AS service_uuid, sv."Name" AS service_name,
@@ -109,4 +118,20 @@ public interface AccountReceivableJpaRepository extends JpaRepository<AccountRec
         ORDER BY ar."PeriodStartDate" DESC, ar."Id" DESC
         """)
     List<AccountReceivableSummaryRow> findSummaryRowsByStall(@Param("stallUuid") UUID stallUuid);
+
+    @Query(nativeQuery = true, value = SUMMARY_ROW_SELECT + """
+        WHERE mem."Id" IS NOT NULL
+          AND EXTRACT(YEAR FROM ar."PeriodStartDate") = :year
+          AND EXTRACT(MONTH FROM ar."PeriodStartDate") = :month
+        ORDER BY mem."LastName", mem."FirstName", ar."PeriodStartDate"
+        """)
+    List<AccountReceivableSummaryRow> findSummaryRowsByMemberPeriod(@Param("year") int year, @Param("month") int month);
+
+    @Query(nativeQuery = true, value = SUMMARY_ROW_SELECT + """
+        WHERE st."Id" IS NOT NULL
+          AND EXTRACT(YEAR FROM ar."PeriodStartDate") = :year
+          AND EXTRACT(MONTH FROM ar."PeriodStartDate") = :month
+        ORDER BY st."Number", ar."PeriodStartDate"
+        """)
+    List<AccountReceivableSummaryRow> findSummaryRowsByStallPeriod(@Param("year") int year, @Param("month") int month);
 }

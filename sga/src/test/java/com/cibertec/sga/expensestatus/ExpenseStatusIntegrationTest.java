@@ -36,7 +36,7 @@ class ExpenseStatusIntegrationTest extends AbstractIntegrationTest {
                 {"username": "admin", "password": "Admin123!"}
                 """)
         ).andReturn();
-        authHeader = "Bearer " + objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asText();
+        authHeader = "Bearer " + objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asString();
     }
 
     @Test

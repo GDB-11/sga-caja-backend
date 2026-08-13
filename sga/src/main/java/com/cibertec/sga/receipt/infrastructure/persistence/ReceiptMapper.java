@@ -39,4 +39,15 @@ public class ReceiptMapper {
             .description(entity.getDescription())
             .build();
     }
+
+    public Receipt toDomain(ReceiptRow row) {
+        return Receipt.builder()
+            .uuid(row.getUuid())
+            .receiptType(ReceiptType.builder().uuid(row.getReceiptTypeUuid()).name(row.getReceiptTypeName()).build())
+            .correlativeNumber(row.getCorrelativeNumber())
+            .issueDate(row.getIssueDate())
+            .amount(row.getAmount())
+            .description(row.getDescription())
+            .build();
+    }
 }

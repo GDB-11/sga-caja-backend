@@ -46,7 +46,7 @@ class AccountReceivableIntegrationTest extends AbstractIntegrationTest {
                 {"username": "admin", "password": "Admin123!"}
                 """)
         ).andReturn();
-        String accessToken = objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asText();
+        String accessToken = objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asString();
         authHeader = "Bearer " + accessToken;
 
         MvcResult cashierLogin = mockMvc.perform(
@@ -54,7 +54,7 @@ class AccountReceivableIntegrationTest extends AbstractIntegrationTest {
                 {"username": "cashier", "password": "Cashier123!"}
                 """)
         ).andReturn();
-        String cashierAccessToken = objectMapper.readTree(cashierLogin.getResponse().getContentAsString()).get("accessToken").asText();
+        String cashierAccessToken = objectMapper.readTree(cashierLogin.getResponse().getContentAsString()).get("accessToken").asString();
         cashierAuthHeader = "Bearer " + cashierAccessToken;
 
         MvcResult businessType = mockMvc.perform(
@@ -62,7 +62,7 @@ class AccountReceivableIntegrationTest extends AbstractIntegrationTest {
                 {"name": "Abarrotes AR Test"}
                 """)
         ).andExpect(status().isCreated()).andReturn();
-        businessTypeUuid = objectMapper.readTree(businessType.getResponse().getContentAsString()).get("uuid").asText();
+        businessTypeUuid = objectMapper.readTree(businessType.getResponse().getContentAsString()).get("uuid").asString();
 
         MvcResult stages = mockMvc.perform(get("/api/stages").header("Authorization", authHeader)).andReturn();
         JsonNode stagesJson = objectMapper.readTree(stages.getResponse().getContentAsString());
@@ -78,7 +78,7 @@ class AccountReceivableIntegrationTest extends AbstractIntegrationTest {
         String memberChargeTargetTypeUuid = findUuidByName(chargeTargetTypesJson, "Member");
 
         MvcResult currencies = mockMvc.perform(get("/api/currencies").header("Authorization", authHeader)).andReturn();
-        String currencyUuid = objectMapper.readTree(currencies.getResponse().getContentAsString()).get(0).get("uuid").asText();
+        String currencyUuid = objectMapper.readTree(currencies.getResponse().getContentAsString()).get(0).get("uuid").asString();
 
         stallServiceUuid = createFixedCostService("Mantenimiento Puesto", recurrenceTypeUuid, stallChargeTargetTypeUuid, currencyUuid);
         memberServiceUuid = createFixedCostService("Cuota Socio", recurrenceTypeUuid, memberChargeTargetTypeUuid, currencyUuid);
@@ -86,8 +86,8 @@ class AccountReceivableIntegrationTest extends AbstractIntegrationTest {
 
     private String findUuidByName(JsonNode array, String name) {
         for (JsonNode node : array) {
-            if (node.get("name").asText().equals(name)) {
-                return node.get("uuid").asText();
+            if (node.get("name").asString().equals(name)) {
+                return node.get("uuid").asString();
             }
         }
         throw new IllegalStateException("No se encontró '" + name + "' en " + array);
@@ -96,7 +96,7 @@ class AccountReceivableIntegrationTest extends AbstractIntegrationTest {
     private String findStageUuidByCode(JsonNode array, int code) {
         for (JsonNode node : array) {
             if (node.get("code").asInt() == code) {
-                return node.get("uuid").asText();
+                return node.get("uuid").asString();
             }
         }
         throw new IllegalStateException("No se encontró la etapa " + code + " en " + array);
@@ -111,7 +111,7 @@ class AccountReceivableIntegrationTest extends AbstractIntegrationTest {
                  "consumptionBased": false, "cost": 30.00}
                 """.formatted(name, recurrenceTypeUuid, chargeTargetTypeUuid, currencyUuid))
         ).andExpect(status().isCreated()).andReturn();
-        return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asText();
+        return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asString();
     }
 
     private void createStall(String number) throws Exception {
@@ -258,7 +258,7 @@ class AccountReceivableIntegrationTest extends AbstractIntegrationTest {
                 """.formatted(memberServiceUuid))
         ).andExpect(status().isCreated()).andReturn();
         String memberUuid = objectMapper.readTree(generated.getResponse().getContentAsString())
-            .get(0).get("member").get("uuid").asText();
+            .get(0).get("member").get("uuid").asString();
 
         mockMvc.perform(get(BASE_URL + "/summary").param("memberUuid", memberUuid).header("Authorization", authHeader))
             .andExpect(status().isOk())
@@ -291,6 +291,6 @@ class AccountReceivableIntegrationTest extends AbstractIntegrationTest {
                 {"serviceUuid": "%s", "periodStartDate": "2026-01-01", "periodEndDate": "2026-01-31", "amount": 30.00}
                 """.formatted(stallServiceUuid))
         ).andExpect(status().isCreated()).andReturn();
-        return objectMapper.readTree(generated.getResponse().getContentAsString()).get(0).get("uuid").asText();
+        return objectMapper.readTree(generated.getResponse().getContentAsString()).get(0).get("uuid").asString();
     }
 }

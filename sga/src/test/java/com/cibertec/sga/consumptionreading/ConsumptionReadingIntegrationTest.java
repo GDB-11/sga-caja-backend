@@ -43,7 +43,7 @@ class ConsumptionReadingIntegrationTest extends AbstractIntegrationTest {
                 {"username": "admin", "password": "Admin123!"}
                 """)
         ).andReturn();
-        String accessToken = objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asText();
+        String accessToken = objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asString();
         authHeader = "Bearer " + accessToken;
 
         MvcResult businessType = mockMvc.perform(
@@ -51,7 +51,7 @@ class ConsumptionReadingIntegrationTest extends AbstractIntegrationTest {
                 {"name": "Abarrotes CR Test"}
                 """)
         ).andExpect(status().isCreated()).andReturn();
-        businessTypeUuid = objectMapper.readTree(businessType.getResponse().getContentAsString()).get("uuid").asText();
+        businessTypeUuid = objectMapper.readTree(businessType.getResponse().getContentAsString()).get("uuid").asString();
 
         MvcResult recurrenceTypes = mockMvc.perform(get("/api/recurrence-types").header("Authorization", authHeader)).andReturn();
         recurrenceTypeUuid = findUuidByName(objectMapper.readTree(recurrenceTypes.getResponse().getContentAsString()), "Monthly");
@@ -61,13 +61,13 @@ class ConsumptionReadingIntegrationTest extends AbstractIntegrationTest {
             findUuidByName(objectMapper.readTree(chargeTargetTypes.getResponse().getContentAsString()), "Stall");
 
         MvcResult currencies = mockMvc.perform(get("/api/currencies").header("Authorization", authHeader)).andReturn();
-        currencyUuid = objectMapper.readTree(currencies.getResponse().getContentAsString()).get(0).get("uuid").asText();
+        currencyUuid = objectMapper.readTree(currencies.getResponse().getContentAsString()).get(0).get("uuid").asString();
     }
 
     private String findUuidByName(JsonNode array, String name) {
         for (JsonNode node : array) {
-            if (node.get("name").asText().equals(name)) {
-                return node.get("uuid").asText();
+            if (node.get("name").asString().equals(name)) {
+                return node.get("uuid").asString();
             }
         }
         throw new IllegalStateException("No se encontró '" + name + "' en " + array);
@@ -80,7 +80,7 @@ class ConsumptionReadingIntegrationTest extends AbstractIntegrationTest {
                  "consumptionBased": true, "unitCost": %s}
                 """.formatted(name, recurrenceTypeUuid, stallChargeTargetTypeUuid, currencyUuid, unitCost))
         ).andExpect(status().isCreated()).andReturn();
-        return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asText();
+        return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asString();
     }
 
     private String createFixedCostService(String name) throws Exception {
@@ -90,7 +90,7 @@ class ConsumptionReadingIntegrationTest extends AbstractIntegrationTest {
                  "consumptionBased": false, "cost": 30.00}
                 """.formatted(name, recurrenceTypeUuid, stallChargeTargetTypeUuid, currencyUuid))
         ).andExpect(status().isCreated()).andReturn();
-        return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asText();
+        return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asString();
     }
 
     private void createStall(String number) throws Exception {
@@ -109,7 +109,7 @@ class ConsumptionReadingIntegrationTest extends AbstractIntegrationTest {
                 {"serviceUuid": "%s", "periodStartDate": "2026-01-01", "periodEndDate": "2026-01-31"%s}
                 """.formatted(serviceUuid, amountField))
         ).andExpect(status().isCreated()).andReturn();
-        return objectMapper.readTree(generated.getResponse().getContentAsString()).get(0).get("uuid").asText();
+        return objectMapper.readTree(generated.getResponse().getContentAsString()).get(0).get("uuid").asString();
     }
 
     @Test

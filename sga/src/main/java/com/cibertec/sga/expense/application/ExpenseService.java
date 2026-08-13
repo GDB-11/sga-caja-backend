@@ -163,8 +163,9 @@ public class ExpenseService implements IExpenseService {
     }
 
     @Override
+    @Transactional
     public Result<Expense, ExpenseError> voidExpense(UUID uuid) {
-        var expenseOpt = expenseRepository.findByUuid(uuid);
+        var expenseOpt = expenseRepository.findByUuidForUpdate(uuid);
         if (expenseOpt.isEmpty()) {
             return Result.failure(new ExpenseError.NotFound(uuid.toString()));
         }
@@ -179,7 +180,7 @@ public class ExpenseService implements IExpenseService {
     @Override
     @Transactional
     public Result<Expense, ExpenseError> processExpense(UUID uuid) {
-        var expenseOpt = expenseRepository.findByUuid(uuid);
+        var expenseOpt = expenseRepository.findByUuidForUpdate(uuid);
         if (expenseOpt.isEmpty()) {
             return Result.failure(new ExpenseError.NotFound(uuid.toString()));
         }

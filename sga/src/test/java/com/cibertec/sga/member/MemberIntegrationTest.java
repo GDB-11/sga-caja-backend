@@ -41,11 +41,11 @@ class MemberIntegrationTest extends AbstractIntegrationTest {
                 {"username": "admin", "password": "Admin123!"}
                 """)
         ).andReturn();
-        String accessToken = objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asText();
+        String accessToken = objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asString();
         authHeader = "Bearer " + accessToken;
 
         MvcResult stages = mockMvc.perform(get("/api/stages").header("Authorization", authHeader)).andReturn();
-        stageUuid = objectMapper.readTree(stages.getResponse().getContentAsString()).get(0).get("uuid").asText();
+        stageUuid = objectMapper.readTree(stages.getResponse().getContentAsString()).get(0).get("uuid").asString();
     }
 
     private String createMember(String code) throws Exception {
@@ -54,7 +54,7 @@ class MemberIntegrationTest extends AbstractIntegrationTest {
                 {"code": "%s", "firstName": "Juan", "lastName": "Perez", "stageUuid": "%s"}
                 """.formatted(code, stageUuid))
         ).andExpect(status().isCreated()).andReturn();
-        return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asText();
+        return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asString();
     }
 
     @Test

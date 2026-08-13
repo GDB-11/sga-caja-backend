@@ -49,24 +49,24 @@ class ExpenseIntegrationTest extends AbstractIntegrationTest {
                 {"username": "admin", "password": "Admin123!"}
                 """)
         ).andReturn();
-        authHeader = "Bearer " + objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asText();
+        authHeader = "Bearer " + objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asString();
 
         MvcResult cashierLogin = mockMvc.perform(
             post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content("""
                 {"username": "cashier", "password": "Cashier123!"}
                 """)
         ).andReturn();
-        cashierAuthHeader = "Bearer " + objectMapper.readTree(cashierLogin.getResponse().getContentAsString()).get("accessToken").asText();
+        cashierAuthHeader = "Bearer " + objectMapper.readTree(cashierLogin.getResponse().getContentAsString()).get("accessToken").asString();
 
         MvcResult provider = mockMvc.perform(
             post("/api/providers").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"name": "Distribuidora Expense Test", "document": "20999999001"}
                 """)
         ).andExpect(status().isCreated()).andReturn();
-        providerUuid = objectMapper.readTree(provider.getResponse().getContentAsString()).get("uuid").asText();
+        providerUuid = objectMapper.readTree(provider.getResponse().getContentAsString()).get("uuid").asString();
 
         MvcResult reasons = mockMvc.perform(get("/api/expense-reasons").header("Authorization", authHeader)).andReturn();
-        expenseReasonUuid = objectMapper.readTree(reasons.getResponse().getContentAsString()).get(0).get("uuid").asText();
+        expenseReasonUuid = objectMapper.readTree(reasons.getResponse().getContentAsString()).get(0).get("uuid").asString();
     }
 
     private String registerExpense(String documentNumber) throws Exception {
@@ -76,7 +76,7 @@ class ExpenseIntegrationTest extends AbstractIntegrationTest {
                  "associatedDocument": "OC-001", "expenseReasonUuid": "%s"}
                 """.formatted(documentNumber, providerUuid, expenseReasonUuid))
         ).andExpect(status().isCreated()).andReturn();
-        return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asText();
+        return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asString();
     }
 
     @Test
@@ -159,7 +159,7 @@ class ExpenseIntegrationTest extends AbstractIntegrationTest {
     @Test
     void bulkUploadWithValidRowsCreatesExpensesPendingWithoutReceipt() throws Exception {
         MvcResult reasons = mockMvc.perform(get("/api/expense-reasons").header("Authorization", authHeader)).andReturn();
-        String reasonName = objectMapper.readTree(reasons.getResponse().getContentAsString()).get(0).get("name").asText();
+        String reasonName = objectMapper.readTree(reasons.getResponse().getContentAsString()).get(0).get("name").asString();
 
         byte[] xlsx = buildBulkExpenseWorkbook(new String[][] {
             {"BULK-001", "Distribuidora Expense Test", "2026-02-10", "80.00", "OC-100", reasonName},
@@ -175,7 +175,7 @@ class ExpenseIntegrationTest extends AbstractIntegrationTest {
             .andReturn();
 
         JsonNode created = objectMapper.readTree(uploaded.getResponse().getContentAsString());
-        String firstUuid = created.get(0).get("uuid").asText();
+        String firstUuid = created.get(0).get("uuid").asString();
         mockMvc.perform(get(BASE_URL + "/{uuid}", firstUuid).header("Authorization", cashierAuthHeader))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.receipt").doesNotExist());
@@ -184,7 +184,7 @@ class ExpenseIntegrationTest extends AbstractIntegrationTest {
     @Test
     void bulkUploadWithUnknownProviderReturnsBadRequestAndCreatesNoExpenses() throws Exception {
         MvcResult reasons = mockMvc.perform(get("/api/expense-reasons").header("Authorization", authHeader)).andReturn();
-        String reasonName = objectMapper.readTree(reasons.getResponse().getContentAsString()).get(0).get("name").asText();
+        String reasonName = objectMapper.readTree(reasons.getResponse().getContentAsString()).get(0).get("name").asString();
 
         byte[] xlsx = buildBulkExpenseWorkbook(new String[][] {
             {"BULK-003", "Proveedor Inexistente SAC", "2026-02-12", "50.00", "", reasonName}

@@ -16,7 +16,9 @@ import com.cibertec.sga.receipttype.domain.repository.IReceiptTypeRepository;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,7 +63,7 @@ public class PaymentService implements IPaymentService {
     @Override
     @Transactional
     public Result<Payment, PaymentError> processPayment(List<UUID> accountReceivableUuids) {
-        Result<List<AccountReceivable>, PaymentError> selection = validateSelection(accountReceivableUuids);
+        Result<List<AccountReceivable>, PaymentError> selection = validateSelectionForUpdate(accountReceivableUuids);
         if (selection.isFailure()) {
             return Result.failure(selection.getError());
         }
@@ -92,13 +94,29 @@ public class PaymentService implements IPaymentService {
     }
 
     private Result<List<AccountReceivable>, PaymentError> validateSelection(List<UUID> accountReceivableUuids) {
+        return validateSelection(accountReceivableUuids, accountReceivableRepository::findByUuid);
+    }
+
+    /**
+     * Igual que {@link #validateSelection(List)}, pero resuelve cada cuenta con un bloqueo
+     * pesimista de fila ({@code SELECT ... FOR UPDATE}, RNF-04) — usada solo por
+     * {@code processPayment} (mutación real), nunca por {@code computeTotal} (vista previa de
+     * solo lectura, que no debe tomar bloqueos de escritura).
+     */
+    private Result<List<AccountReceivable>, PaymentError> validateSelectionForUpdate(List<UUID> accountReceivableUuids) {
+        return validateSelection(accountReceivableUuids, accountReceivableRepository::findByUuidForUpdate);
+    }
+
+    private Result<List<AccountReceivable>, PaymentError> validateSelection(
+        List<UUID> accountReceivableUuids, Function<UUID, Optional<AccountReceivable>> lookup
+    ) {
         if (accountReceivableUuids == null || accountReceivableUuids.isEmpty()) {
             return Result.failure(new PaymentError.EmptySelection());
         }
 
         List<AccountReceivable> accountReceivables = new ArrayList<>();
         for (UUID uuid : accountReceivableUuids) {
-            var accountReceivableOpt = accountReceivableRepository.findByUuid(uuid);
+            var accountReceivableOpt = lookup.apply(uuid);
             if (accountReceivableOpt.isEmpty()) {
                 return Result.failure(new PaymentError.AccountReceivableNotFound(uuid.toString()));
             }

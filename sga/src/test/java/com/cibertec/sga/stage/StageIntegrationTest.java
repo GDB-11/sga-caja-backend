@@ -36,7 +36,7 @@ class StageIntegrationTest extends AbstractIntegrationTest {
                 {"username": "admin", "password": "Admin123!"}
                 """)
         ).andReturn();
-        String accessToken = objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asText();
+        String accessToken = objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asString();
         authHeader = "Bearer " + accessToken;
     }
 
@@ -50,7 +50,7 @@ class StageIntegrationTest extends AbstractIntegrationTest {
     @Test
     void getByUuidReturnsMatchingStage() throws Exception {
         MvcResult list = mockMvc.perform(get("/api/stages").header("Authorization", authHeader)).andReturn();
-        String uuid = objectMapper.readTree(list.getResponse().getContentAsString()).get(0).get("uuid").asText();
+        String uuid = objectMapper.readTree(list.getResponse().getContentAsString()).get(0).get("uuid").asString();
 
         mockMvc.perform(get("/api/stages/{uuid}", uuid).header("Authorization", authHeader))
             .andExpect(status().isOk())

@@ -5,6 +5,7 @@ import com.cibertec.sga.bank.domain.model.Bank;
 import com.cibertec.sga.bankexchange.domain.model.BankExchange;
 import com.cibertec.sga.receipt.domain.model.Receipt;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -28,4 +29,10 @@ public interface IBankExchangeRepository {
      * {@code date} filtra por fecha de depósito (RF-31, "listar recibos bancarios por fecha").
      */
     Page<BankExchange> search(UUID bankUuid, LocalDate date, Pageable pageable);
+
+    /**
+     * Lista canjes con fecha de depósito en el rango dado (extremos incluidos) — usado por el
+     * reporte de bancos (RF-33).
+     */
+    List<BankExchange> findByDepositDateBetween(LocalDate startDate, LocalDate endDate);
 }

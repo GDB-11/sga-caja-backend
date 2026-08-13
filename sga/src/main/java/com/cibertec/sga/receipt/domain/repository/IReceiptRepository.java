@@ -1,6 +1,8 @@
 package com.cibertec.sga.receipt.domain.repository;
 
 import com.cibertec.sga.receipt.domain.model.Receipt;
+import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Puerto de persistencia para {@link Receipt}, implementado en {@code infrastructure}. Sin
@@ -10,4 +12,10 @@ import com.cibertec.sga.receipt.domain.model.Receipt;
 public interface IReceiptRepository {
 
     Receipt insert(Receipt receipt);
+
+    /**
+     * Lista comprobantes emitidos en el rango de fechas dado (extremos incluidos), ordenados
+     * por fecha/tipo/correlativo — usado por los reportes de movimientos (RF-32).
+     */
+    List<Receipt> findByIssueDateBetween(LocalDate startDate, LocalDate endDate);
 }

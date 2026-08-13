@@ -41,7 +41,7 @@ class StallIntegrationTest extends AbstractIntegrationTest {
                 {"username": "admin", "password": "Admin123!"}
                 """)
         ).andReturn();
-        String accessToken = objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asText();
+        String accessToken = objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asString();
         authHeader = "Bearer " + accessToken;
 
         MvcResult businessType = mockMvc.perform(
@@ -49,17 +49,17 @@ class StallIntegrationTest extends AbstractIntegrationTest {
                 {"name": "Abarrotes Stall Test"}
                 """)
         ).andExpect(status().isCreated()).andReturn();
-        businessTypeUuid = objectMapper.readTree(businessType.getResponse().getContentAsString()).get("uuid").asText();
+        businessTypeUuid = objectMapper.readTree(businessType.getResponse().getContentAsString()).get("uuid").asString();
 
         MvcResult stages = mockMvc.perform(get("/api/stages").header("Authorization", authHeader)).andReturn();
-        String stageUuid = objectMapper.readTree(stages.getResponse().getContentAsString()).get(0).get("uuid").asText();
+        String stageUuid = objectMapper.readTree(stages.getResponse().getContentAsString()).get(0).get("uuid").asString();
 
         MvcResult member = mockMvc.perform(
             post("/api/members").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"code": "STALL-M-001", "firstName": "Ana", "lastName": "Ruiz", "stageUuid": "%s"}
                 """.formatted(stageUuid))
         ).andExpect(status().isCreated()).andReturn();
-        memberUuid = objectMapper.readTree(member.getResponse().getContentAsString()).get("uuid").asText();
+        memberUuid = objectMapper.readTree(member.getResponse().getContentAsString()).get("uuid").asString();
     }
 
     private String createStall(String number, String memberUuidOrNull) throws Exception {
@@ -69,7 +69,7 @@ class StallIntegrationTest extends AbstractIntegrationTest {
                 {"number": "%s", "businessTypeUuid": "%s", "memberUuid": %s}
                 """.formatted(number, businessTypeUuid, memberField))
         ).andExpect(status().isCreated()).andReturn();
-        return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asText();
+        return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asString();
     }
 
     @Test

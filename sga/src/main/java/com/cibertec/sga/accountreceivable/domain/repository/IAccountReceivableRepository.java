@@ -19,6 +19,16 @@ public interface IAccountReceivableRepository {
 
     Optional<AccountReceivable> findByUuid(UUID uuid);
 
+    /**
+     * Igual que {@link #findByUuid(UUID)}, pero toma un bloqueo pesimista de fila
+     * ({@code SELECT ... FOR UPDATE}) sobre la cuenta por cobrar dentro de la transacción del
+     * llamador — evita la carrera de "doble liquidación" cuando dos operaciones concurrentes
+     * (pago, canje, exoneración) leen la misma cuenta en estado {@code Pending} antes de que
+     * cualquiera de las dos confirme su cambio de estado (RNF-04). Solo debe usarse dentro de un
+     * método {@code @Transactional} inmediatamente antes de validar y mutar el estado.
+     */
+    Optional<AccountReceivable> findByUuidForUpdate(UUID uuid);
+
     List<AccountReceivable> insertAll(List<AccountReceivable> accountReceivables);
 
     /**
@@ -38,4 +48,16 @@ public interface IAccountReceivableRepository {
     List<AccountReceivableMovement> findMovementsByMember(UUID memberUuid);
 
     List<AccountReceivableMovement> findMovementsByStall(UUID stallUuid);
+
+    /**
+     * Cuentas por cobrar cargadas directamente a un socio ("reporte de socios", RF-33) cuyo
+     * período de cobro (RF-16) inicia en el mes indicado.
+     */
+    List<AccountReceivableMovement> findMovementsByMemberPeriod(int year, int month);
+
+    /**
+     * Cuentas por cobrar cargadas directamente a un puesto ("reporte de no socios", RF-33) cuyo
+     * período de cobro (RF-16) inicia en el mes indicado.
+     */
+    List<AccountReceivableMovement> findMovementsByStallPeriod(int year, int month);
 }

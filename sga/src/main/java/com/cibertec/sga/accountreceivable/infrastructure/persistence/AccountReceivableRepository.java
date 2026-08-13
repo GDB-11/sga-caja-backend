@@ -34,6 +34,14 @@ public class AccountReceivableRepository implements IAccountReceivableRepository
     }
 
     @Override
+    public Optional<AccountReceivable> findByUuidForUpdate(UUID uuid) {
+        if (jpaRepository.lockEntityByUuid(uuid).isEmpty()) {
+            return Optional.empty();
+        }
+        return findByUuid(uuid);
+    }
+
+    @Override
     public List<AccountReceivable> insertAll(List<AccountReceivable> accountReceivables) {
         if (accountReceivables.isEmpty()) {
             return List.of();
@@ -68,5 +76,15 @@ public class AccountReceivableRepository implements IAccountReceivableRepository
     @Override
     public List<AccountReceivableMovement> findMovementsByStall(UUID stallUuid) {
         return jpaRepository.findSummaryRowsByStall(stallUuid).stream().map(mapper::toMovement).toList();
+    }
+
+    @Override
+    public List<AccountReceivableMovement> findMovementsByMemberPeriod(int year, int month) {
+        return jpaRepository.findSummaryRowsByMemberPeriod(year, month).stream().map(mapper::toMovement).toList();
+    }
+
+    @Override
+    public List<AccountReceivableMovement> findMovementsByStallPeriod(int year, int month) {
+        return jpaRepository.findSummaryRowsByStallPeriod(year, month).stream().map(mapper::toMovement).toList();
     }
 }

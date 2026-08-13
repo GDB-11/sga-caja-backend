@@ -8,6 +8,7 @@ import com.cibertec.sga.consumptionreading.domain.model.ConsumptionReading;
 import com.cibertec.sga.consumptionreading.domain.repository.IConsumptionReadingRepository;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ConsumptionReadingService implements IConsumptionReadingService {
@@ -23,8 +24,12 @@ public class ConsumptionReadingService implements IConsumptionReadingService {
     }
 
     @Override
+    @Transactional
     public Result<ConsumptionReading, ConsumptionReadingError> register(RegisterConsumptionReadingCommand command) {
-        var accountReceivableOpt = accountReceivableRepository.findByUuid(command.accountReceivableUuid());
+        // Bloqueo pesimista de la cuenta por cobrar (RNF-04): sirve de mutex para que dos
+        // registros concurrentes sobre la misma cuenta se serialicen y el segundo vea la lectura
+        // ya insertada por el primero, en vez de chocar contra uq_consumption_reading_account_receivable_id.
+        var accountReceivableOpt = accountReceivableRepository.findByUuidForUpdate(command.accountReceivableUuid());
         if (accountReceivableOpt.isEmpty()) {
             return Result.failure(new ConsumptionReadingError.AccountReceivableNotFound(command.accountReceivableUuid().toString()));
         }

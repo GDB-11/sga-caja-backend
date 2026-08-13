@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
 
 @org.springframework.stereotype.Service
 public class AccountReceivableService implements IAccountReceivableService {
@@ -196,8 +197,9 @@ public class AccountReceivableService implements IAccountReceivableService {
     }
 
     @Override
+    @Transactional
     public Result<AccountReceivable, AccountReceivableError> markExempt(UUID uuid) {
-        var accountReceivableOpt = accountReceivableRepository.findByUuid(uuid);
+        var accountReceivableOpt = accountReceivableRepository.findByUuidForUpdate(uuid);
         if (accountReceivableOpt.isEmpty()) {
             return Result.failure(new AccountReceivableError.NotFound(uuid.toString()));
         }

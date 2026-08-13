@@ -54,7 +54,7 @@ public class BankExchangeService implements IBankExchangeService {
     @Override
     @Transactional
     public Result<BankExchange, BankExchangeError> create(CreateBankExchangeCommand command) {
-        var accountReceivableOpt = accountReceivableRepository.findByUuid(command.accountReceivableUuid());
+        var accountReceivableOpt = accountReceivableRepository.findByUuidForUpdate(command.accountReceivableUuid());
         if (accountReceivableOpt.isEmpty()) {
             return Result.failure(new BankExchangeError.AccountReceivableNotFound(command.accountReceivableUuid().toString()));
         }

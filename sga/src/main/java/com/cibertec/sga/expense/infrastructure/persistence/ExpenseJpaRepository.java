@@ -55,4 +55,13 @@ public interface ExpenseJpaRepository extends JpaRepository<ExpenseEntity, Long>
 
     @Query(nativeQuery = true, value = "SELECT * FROM \"Expense\" WHERE \"Uuid\" = :uuid")
     Optional<ExpenseEntity> findEntityByUuid(@Param("uuid") UUID uuid);
+
+    /**
+     * Toma un bloqueo pesimista de fila sobre el egreso (RNF-04) — el valor devuelto no se usa,
+     * solo sirve para bloquear hasta que cualquier transacción concurrente que lo tenga
+     * bloqueado confirme o revierta; el estado real se relee después vía
+     * {@link #findRowByUuid(UUID)}, que ve el dato ya actualizado por esa transacción.
+     */
+    @Query(nativeQuery = true, value = "SELECT * FROM \"Expense\" WHERE \"Uuid\" = :uuid FOR UPDATE")
+    Optional<ExpenseEntity> lockEntityByUuid(@Param("uuid") UUID uuid);
 }

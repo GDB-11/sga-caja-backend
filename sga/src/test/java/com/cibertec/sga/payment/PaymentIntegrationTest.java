@@ -42,14 +42,14 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
                 {"username": "admin", "password": "Admin123!"}
                 """)
         ).andReturn();
-        authHeader = "Bearer " + objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asText();
+        authHeader = "Bearer " + objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asString();
 
         MvcResult cashierLogin = mockMvc.perform(
             post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content("""
                 {"username": "cashier", "password": "Cashier123!"}
                 """)
         ).andReturn();
-        cashierAuthHeader = "Bearer " + objectMapper.readTree(cashierLogin.getResponse().getContentAsString()).get("accessToken").asText();
+        cashierAuthHeader = "Bearer " + objectMapper.readTree(cashierLogin.getResponse().getContentAsString()).get("accessToken").asString();
 
         MvcResult stages = mockMvc.perform(get("/api/stages").header("Authorization", authHeader)).andReturn();
         JsonNode stagesJson = objectMapper.readTree(stages.getResponse().getContentAsString());
@@ -63,7 +63,7 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
             findUuidByName(objectMapper.readTree(chargeTargetTypes.getResponse().getContentAsString()), "Member");
 
         MvcResult currencies = mockMvc.perform(get("/api/currencies").header("Authorization", authHeader)).andReturn();
-        String currencyUuid = objectMapper.readTree(currencies.getResponse().getContentAsString()).get(0).get("uuid").asText();
+        String currencyUuid = objectMapper.readTree(currencies.getResponse().getContentAsString()).get(0).get("uuid").asString();
 
         MvcResult service = mockMvc.perform(
             post("/api/services").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
@@ -71,13 +71,13 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
                  "consumptionBased": false, "cost": 50.00}
                 """.formatted(recurrenceTypeUuid, memberChargeTargetTypeUuid, currencyUuid))
         ).andExpect(status().isCreated()).andReturn();
-        memberServiceUuid = objectMapper.readTree(service.getResponse().getContentAsString()).get("uuid").asText();
+        memberServiceUuid = objectMapper.readTree(service.getResponse().getContentAsString()).get("uuid").asString();
     }
 
     private String findUuidByName(JsonNode array, String name) {
         for (JsonNode node : array) {
-            if (node.get("name").asText().equals(name)) {
-                return node.get("uuid").asText();
+            if (node.get("name").asString().equals(name)) {
+                return node.get("uuid").asString();
             }
         }
         throw new IllegalStateException("No se encontró '" + name + "' en " + array);
@@ -86,7 +86,7 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
     private String findStageUuidByCode(JsonNode array, int code) {
         for (JsonNode node : array) {
             if (node.get("code").asInt() == code) {
-                return node.get("uuid").asText();
+                return node.get("uuid").asString();
             }
         }
         throw new IllegalStateException("No se encontró la etapa " + code + " en " + array);
@@ -110,9 +110,9 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
         // to isolate the receivable belonging to the member this test just created.
         JsonNode created = objectMapper.readTree(generated.getResponse().getContentAsString());
         for (JsonNode node : created) {
-            String fullName = node.get("member").get("fullName").asText();
+            String fullName = node.get("member").get("fullName").asString();
             if (fullName.equals(firstName + " " + lastName)) {
-                return node.get("uuid").asText();
+                return node.get("uuid").asString();
             }
         }
         throw new IllegalStateException("No se encontró la cuenta por cobrar generada para " + firstName + " " + lastName);

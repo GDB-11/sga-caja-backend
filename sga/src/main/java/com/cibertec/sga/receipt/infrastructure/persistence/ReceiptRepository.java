@@ -2,6 +2,8 @@ package com.cibertec.sga.receipt.infrastructure.persistence;
 
 import com.cibertec.sga.receipt.domain.model.Receipt;
 import com.cibertec.sga.receipt.domain.repository.IReceiptRepository;
+import java.time.LocalDate;
+import java.util.List;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -19,5 +21,10 @@ public class ReceiptRepository implements IReceiptRepository {
     public Receipt insert(Receipt receipt) {
         ReceiptEntity saved = jpaRepository.save(mapper.toNewEntity(receipt));
         return mapper.toDomain(saved, receipt.getReceiptType());
+    }
+
+    @Override
+    public List<Receipt> findByIssueDateBetween(LocalDate startDate, LocalDate endDate) {
+        return jpaRepository.findRowsByIssueDateBetween(startDate, endDate).stream().map(mapper::toDomain).toList();
     }
 }

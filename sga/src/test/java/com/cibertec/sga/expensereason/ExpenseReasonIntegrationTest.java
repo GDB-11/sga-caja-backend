@@ -36,7 +36,7 @@ class ExpenseReasonIntegrationTest extends AbstractIntegrationTest {
                 {"username": "admin", "password": "Admin123!"}
                 """)
         ).andReturn();
-        authHeader = "Bearer " + objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asText();
+        authHeader = "Bearer " + objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asString();
     }
 
     @Test
@@ -49,7 +49,7 @@ class ExpenseReasonIntegrationTest extends AbstractIntegrationTest {
     @Test
     void getByUuidReturnsMatchingExpenseReason() throws Exception {
         MvcResult list = mockMvc.perform(get("/api/expense-reasons").header("Authorization", authHeader)).andReturn();
-        String uuid = objectMapper.readTree(list.getResponse().getContentAsString()).get(0).get("uuid").asText();
+        String uuid = objectMapper.readTree(list.getResponse().getContentAsString()).get(0).get("uuid").asString();
 
         mockMvc.perform(get("/api/expense-reasons/{uuid}", uuid).header("Authorization", authHeader))
             .andExpect(status().isOk())

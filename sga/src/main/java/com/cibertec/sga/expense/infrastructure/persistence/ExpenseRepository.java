@@ -45,6 +45,14 @@ public class ExpenseRepository implements IExpenseRepository {
     }
 
     @Override
+    public Optional<Expense> findByUuidForUpdate(UUID uuid) {
+        if (jpaRepository.lockEntityByUuid(uuid).isEmpty()) {
+            return Optional.empty();
+        }
+        return findByUuid(uuid);
+    }
+
+    @Override
     public Page<Expense> search(Integer year, Integer month, Pageable pageable) {
         return jpaRepository.search(year, month, pageable).map(mapper::toDomain);
     }

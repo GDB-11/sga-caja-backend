@@ -6,6 +6,7 @@ import com.cibertec.sga.bankexchange.domain.model.BankExchange;
 import com.cibertec.sga.bankexchange.domain.repository.IBankExchangeRepository;
 import com.cibertec.sga.receipt.domain.model.Receipt;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -37,5 +38,10 @@ public class BankExchangeRepository implements IBankExchangeRepository {
     @Override
     public Page<BankExchange> search(UUID bankUuid, LocalDate date, Pageable pageable) {
         return jpaRepository.search(bankUuid, date, pageable).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<BankExchange> findByDepositDateBetween(LocalDate startDate, LocalDate endDate) {
+        return jpaRepository.findRowsByDepositDateBetween(startDate, endDate).stream().map(mapper::toDomain).toList();
     }
 }
