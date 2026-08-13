@@ -190,8 +190,7 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
     void reportsReflectRegisteredMovements() throws Exception {
         String paidMemberReceivable = createMemberReceivable("REP-001", "Ana", "Reyes");
         String exchangedMemberReceivable = createMemberReceivable("REP-002", "Bruno", "Vidal");
-        String pendingStallReceivable = createStallReceivable("REP-01");
-
+        
         mockMvc.perform(
             post("/api/payments").header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"accountReceivableUuids": ["%s"]}

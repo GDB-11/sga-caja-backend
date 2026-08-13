@@ -5,7 +5,6 @@ import com.cibertec.sga.common.result.ResultResponse;
 import com.cibertec.sga.consumptionreading.application.IConsumptionReadingService;
 import com.cibertec.sga.consumptionreading.domain.error.ConsumptionReadingError;
 import com.cibertec.sga.consumptionreading.domain.model.ConsumptionReading;
-import com.cibertec.sga.consumptionreading.web.dto.ConsumptionReadingResponse;
 import com.cibertec.sga.consumptionreading.web.dto.RegisterConsumptionReadingRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
