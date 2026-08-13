@@ -41,9 +41,7 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
     private String authHeader;
     private String cashierAuthHeader;
     private String stage1Uuid;
-    private String businessTypeUuid;
     private String memberServiceUuid;
-    private String stallServiceUuid;
     private String bankUuid;
     private String incomeCategoryUuid;
     private String providerUuid;
@@ -80,14 +78,14 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
         String currencyUuid = objectMapper.readTree(currencies.getResponse().getContentAsString()).get(0).get("uuid").asString();
 
         memberServiceUuid = createFixedCostService("Cuota Socio Reporte Test", recurrenceTypeUuid, memberChargeTargetTypeUuid, currencyUuid, "50.00");
-        stallServiceUuid = createFixedCostService("Mantenimiento Reporte Test", recurrenceTypeUuid, stallChargeTargetTypeUuid, currencyUuid, "30.00");
+        createFixedCostService("Mantenimiento Reporte Test", recurrenceTypeUuid, stallChargeTargetTypeUuid, currencyUuid, "30.00");
 
         MvcResult businessType = mockMvc.perform(
             post("/api/business-types").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"name": "Abarrotes Reporte Test"}
                 """)
         ).andExpect(status().isCreated()).andReturn();
-        businessTypeUuid = objectMapper.readTree(businessType.getResponse().getContentAsString()).get("uuid").asString();
+        objectMapper.readTree(businessType.getResponse().getContentAsString()).get("uuid").asString();
 
         MvcResult bank = mockMvc.perform(
             post("/api/banks").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
@@ -162,28 +160,6 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
             }
         }
         throw new IllegalStateException("No se encontró la cuenta por cobrar generada para " + firstName + " " + lastName);
-    }
-
-    private String createStallReceivable(String number) throws Exception {
-        mockMvc.perform(
-            post("/api/stalls").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
-                {"number": "%s", "businessTypeUuid": "%s"}
-                """.formatted(number, businessTypeUuid))
-        ).andExpect(status().isCreated());
-
-        MvcResult generated = mockMvc.perform(
-            post("/api/account-receivables/generate-by-stall")
-                .header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
-                {"serviceUuid": "%s", "periodStartDate": "2026-01-01", "periodEndDate": "2026-01-31", "amount": 30.00}
-                """.formatted(stallServiceUuid))
-        ).andExpect(status().isCreated()).andReturn();
-        JsonNode created = objectMapper.readTree(generated.getResponse().getContentAsString());
-        for (JsonNode node : created) {
-            if (node.get("stall").get("number").asString().equals(number)) {
-                return node.get("uuid").asString();
-            }
-        }
-        throw new IllegalStateException("No se encontró la cuenta por cobrar generada para el puesto " + number);
     }
 
     @Test

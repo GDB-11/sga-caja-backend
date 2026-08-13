@@ -4,7 +4,7 @@ import java.nio.file.Path;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.MountableFile;
 
 /**
@@ -34,7 +34,7 @@ public abstract class AbstractIntegrationTest {
     private static final Path SGA_CAJA_DB_DIR =
         Path.of(System.getProperty("user.dir"), "..", "..", "sga-caja-db").normalize();
 
-    private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:18")
+    private static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18")
         .withCopyFileToContainer(MountableFile.forHostPath(SGA_CAJA_DB_DIR.resolve("migrations")), "/migrations")
         .withCopyFileToContainer(MountableFile.forHostPath(SGA_CAJA_DB_DIR.resolve("seed")), "/seed")
         .withCopyFileToContainer(
