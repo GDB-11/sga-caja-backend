@@ -1,5 +1,6 @@
 package com.cibertec.sga.member.infrastructure.persistence;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -51,6 +52,17 @@ public interface MemberJpaRepository extends JpaRepository<MemberEntity, Long> {
 
     @Query(nativeQuery = true, value = "SELECT * FROM \"Member\" WHERE \"Uuid\" = :uuid")
     Optional<MemberEntity> findEntityByUuid(@Param("uuid") UUID uuid);
+
+    @Query(nativeQuery = true, value = """
+        SELECT m."Uuid" AS uuid, m."Code" AS code, m."FirstName" AS first_name, m."LastName" AS last_name,
+               m."ShareNumber" AS share_number, s."Uuid" AS stage_uuid, s."Code" AS stage_code,
+               s."Name" AS stage_name, m."BirthDate" AS birth_date, m."IsActive" AS is_active,
+               m."CreatedAt" AS created_at, m."UpdatedAt" AS updated_at
+        FROM "Member" m JOIN "Stage" s ON s."Id" = m."StageId"
+        WHERE m."IsActive" = TRUE AND s."Code" IN (:stageCodes)
+        ORDER BY m."LastName", m."FirstName"
+        """)
+    List<MemberRow> findAllActiveByStageCodesRows(@Param("stageCodes") List<Short> stageCodes);
 
     @Query(nativeQuery = true, value = "SELECT EXISTS(SELECT 1 FROM \"Member\" WHERE \"Code\" = :code)")
     boolean existsByCode(@Param("code") String code);

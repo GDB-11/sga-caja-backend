@@ -15,6 +15,12 @@ public interface IProviderRepository {
 
     Optional<Provider> findByUuid(UUID uuid);
 
+    /**
+     * Usado por la carga masiva de egresos (RF-28) para resolver el proveedor de cada fila por
+     * nombre exacto — el archivo de carga no trae Uuids.
+     */
+    Optional<Provider> findByName(String name);
+
     Provider insert(Provider provider);
 
     Provider update(UUID uuid, Provider provider);

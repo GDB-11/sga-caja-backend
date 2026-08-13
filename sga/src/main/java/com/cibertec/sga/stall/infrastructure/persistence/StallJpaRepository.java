@@ -1,5 +1,6 @@
 package com.cibertec.sga.stall.infrastructure.persistence;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -57,6 +58,21 @@ public interface StallJpaRepository extends JpaRepository<StallEntity, Long> {
 
     @Query(nativeQuery = true, value = "SELECT * FROM \"Stall\" WHERE \"Uuid\" = :uuid")
     Optional<StallEntity> findEntityByUuid(@Param("uuid") UUID uuid);
+
+    @Query(nativeQuery = true, value = """
+        SELECT st."Uuid" AS uuid, st."Number" AS number,
+               bt."Uuid" AS business_type_uuid, bt."Name" AS business_type_name,
+               mem."Uuid" AS member_uuid, CONCAT(mem."FirstName", ' ', mem."LastName") AS member_full_name,
+               st."TenantName" AS tenant_name, st."TenantDocument" AS tenant_document,
+               st."ValidityStartDate" AS validity_start_date, st."ValidityEndDate" AS validity_end_date,
+               st."IsActive" AS is_active
+        FROM "Stall" st
+        JOIN "BusinessType" bt ON bt."Id" = st."BusinessTypeId"
+        LEFT JOIN "Member" mem ON mem."Id" = st."MemberId"
+        WHERE st."IsActive" = TRUE
+        ORDER BY st."Number"
+        """)
+    List<StallRow> findAllActiveRows();
 
     @Query(nativeQuery = true, value = "SELECT EXISTS(SELECT 1 FROM \"Stall\" WHERE \"Number\" = :number)")
     boolean existsByNumber(@Param("number") String number);

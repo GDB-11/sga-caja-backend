@@ -33,4 +33,7 @@ public interface ProviderJpaRepository extends JpaRepository<ProviderEntity, Lon
 
     @Query(nativeQuery = true, value = "SELECT * FROM \"Provider\" WHERE \"Uuid\" = :uuid")
     Optional<ProviderEntity> findByUuid(@Param("uuid") UUID uuid);
+
+    @Query(nativeQuery = true, value = "SELECT * FROM \"Provider\" WHERE \"Name\" = :name")
+    Optional<ProviderEntity> findByName(@Param("name") String name);
 }

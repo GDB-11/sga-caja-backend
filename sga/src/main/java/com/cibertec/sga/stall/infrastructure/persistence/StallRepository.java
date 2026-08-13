@@ -2,6 +2,7 @@ package com.cibertec.sga.stall.infrastructure.persistence;
 
 import com.cibertec.sga.stall.domain.model.Stall;
 import com.cibertec.sga.stall.domain.repository.IStallRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -27,6 +28,11 @@ public class StallRepository implements IStallRepository {
     @Override
     public Optional<Stall> findByUuid(UUID uuid) {
         return jpaRepository.findRowByUuid(uuid).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<Stall> findAllActive() {
+        return jpaRepository.findAllActiveRows().stream().map(mapper::toDomain).toList();
     }
 
     @Override

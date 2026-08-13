@@ -30,6 +30,11 @@ public class ProviderRepository implements IProviderRepository {
     }
 
     @Override
+    public Optional<Provider> findByName(String name) {
+        return jpaRepository.findByName(name).map(mapper::toDomain);
+    }
+
+    @Override
     public Provider insert(Provider provider) {
         return mapper.toDomain(jpaRepository.save(mapper.toNewEntity(provider)));
     }

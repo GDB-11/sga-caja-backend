@@ -2,6 +2,7 @@ package com.cibertec.sga.member.infrastructure.persistence;
 
 import com.cibertec.sga.member.domain.model.Member;
 import com.cibertec.sga.member.domain.repository.IMemberRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -27,6 +28,11 @@ public class MemberRepository implements IMemberRepository {
     @Override
     public Optional<Member> findByUuid(UUID uuid) {
         return jpaRepository.findRowByUuid(uuid).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<Member> findAllActiveByStageCodes(List<Short> stageCodes) {
+        return jpaRepository.findAllActiveByStageCodesRows(stageCodes).stream().map(mapper::toDomain).toList();
     }
 
     @Override
