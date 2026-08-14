@@ -1,5 +1,6 @@
 package com.cibertec.sga.accountreceivable;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -7,6 +8,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.cibertec.sga.common.AbstractIntegrationTest;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -122,12 +126,13 @@ class AccountReceivableIntegrationTest extends AbstractIntegrationTest {
         ).andExpect(status().isCreated());
     }
 
-    private void createMember(String code, String firstName, String lastName, String stageUuid) throws Exception {
-        mockMvc.perform(
+    private String createMember(String code, String firstName, String lastName, String stageUuid) throws Exception {
+        MvcResult created = mockMvc.perform(
             post("/api/members").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"code": "%s", "firstName": "%s", "lastName": "%s", "stageUuid": "%s"}
                 """.formatted(code, firstName, lastName, stageUuid))
-        ).andExpect(status().isCreated());
+        ).andExpect(status().isCreated()).andReturn();
+        return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asString();
     }
 
     @Test
@@ -183,27 +188,42 @@ class AccountReceivableIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void generateByMemberWithUniqueMembersDedupesBySameFullName() throws Exception {
-        createMember("AR-M-001", "Ana", "Ruiz", stage1Uuid);
-        createMember("AR-M-002", "Ana", "Ruiz", stage2Uuid);
-        createMember("AR-M-003", "Juan", "Perez", stage1Uuid);
+        // stageCodes [1, 2] matches every active member in those stages across the shared test
+        // database (see AbstractIntegrationTest's singleton container), not just the ones created
+        // here, so assertions below are scoped to this test's own member uuids instead of raw
+        // response length.
+        String member1Uuid = createMember("AR-M-001", "Ana", "Ruiz", stage1Uuid);
+        String member2Uuid = createMember("AR-M-002", "Ana", "Ruiz", stage2Uuid);
+        String member3Uuid = createMember("AR-M-003", "Juan", "Perez", stage1Uuid);
+        Set<String> createdMemberUuids = Set.of(member1Uuid, member2Uuid, member3Uuid);
 
-        mockMvc.perform(
+        MvcResult withoutDedup = mockMvc.perform(
             post(BASE_URL + "/generate-by-member").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"serviceUuid": "%s", "periodStartDate": "2026-01-01", "periodEndDate": "2026-01-31", "amount": 30.00,
                  "stageCodes": [1, 2], "uniqueMembers": false}
                 """.formatted(memberServiceUuid))
-        )
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.length()").value(3));
+        ).andExpect(status().isCreated()).andReturn();
+        assertThat(memberFullNamesFor(withoutDedup, createdMemberUuids)).containsExactlyInAnyOrder("Ana Ruiz", "Ana Ruiz", "Juan Perez");
 
-        mockMvc.perform(
+        MvcResult withDedup = mockMvc.perform(
             post(BASE_URL + "/generate-by-member").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"serviceUuid": "%s", "periodStartDate": "2026-02-01", "periodEndDate": "2026-02-28", "amount": 30.00,
                  "stageCodes": [1, 2], "uniqueMembers": true}
                 """.formatted(memberServiceUuid))
-        )
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.length()").value(2));
+        ).andExpect(status().isCreated()).andReturn();
+        assertThat(memberFullNamesFor(withDedup, createdMemberUuids)).containsExactlyInAnyOrder("Ana Ruiz", "Juan Perez");
+    }
+
+    private List<String> memberFullNamesFor(MvcResult result, Set<String> memberUuids) throws Exception {
+        JsonNode receivables = objectMapper.readTree(result.getResponse().getContentAsString());
+        List<String> fullNames = new ArrayList<>();
+        for (JsonNode receivable : receivables) {
+            String memberUuid = receivable.get("member").get("uuid").asString();
+            if (memberUuids.contains(memberUuid)) {
+                fullNames.add(receivable.get("member").get("fullName").asString());
+            }
+        }
+        return fullNames;
     }
 
     @Test

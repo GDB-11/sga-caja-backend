@@ -12,6 +12,9 @@ import com.cibertec.sga.common.AbstractIntegrationTest;
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Set;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -42,6 +45,8 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
     private String cashierAuthHeader;
     private String stage1Uuid;
     private String memberServiceUuid;
+    private String stallServiceUuid;
+    private String businessTypeUuid;
     private String bankUuid;
     private String incomeCategoryUuid;
     private String providerUuid;
@@ -78,14 +83,14 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
         String currencyUuid = objectMapper.readTree(currencies.getResponse().getContentAsString()).get(0).get("uuid").asString();
 
         memberServiceUuid = createFixedCostService("Cuota Socio Reporte Test", recurrenceTypeUuid, memberChargeTargetTypeUuid, currencyUuid, "50.00");
-        createFixedCostService("Mantenimiento Reporte Test", recurrenceTypeUuid, stallChargeTargetTypeUuid, currencyUuid, "30.00");
+        stallServiceUuid = createFixedCostService("Mantenimiento Reporte Test", recurrenceTypeUuid, stallChargeTargetTypeUuid, currencyUuid, "30.00");
 
         MvcResult businessType = mockMvc.perform(
             post("/api/business-types").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"name": "Abarrotes Reporte Test"}
                 """)
         ).andExpect(status().isCreated()).andReturn();
-        objectMapper.readTree(businessType.getResponse().getContentAsString()).get("uuid").asString();
+        businessTypeUuid = objectMapper.readTree(businessType.getResponse().getContentAsString()).get("uuid").asString();
 
         MvcResult bank = mockMvc.perform(
             post("/api/banks").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
@@ -162,16 +167,34 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
         throw new IllegalStateException("No se encontró la cuenta por cobrar generada para " + firstName + " " + lastName);
     }
 
+    private void createStallReceivable(String number) throws Exception {
+        mockMvc.perform(
+            post("/api/stalls").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"number": "%s", "businessTypeUuid": "%s"}
+                """.formatted(number, businessTypeUuid))
+        ).andExpect(status().isCreated());
+
+        mockMvc.perform(
+            post("/api/account-receivables/generate-by-stall")
+                .header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"serviceUuid": "%s", "periodStartDate": "2026-01-01", "periodEndDate": "2026-01-31", "amount": 30.00}
+                """.formatted(stallServiceUuid))
+        ).andExpect(status().isCreated());
+    }
+
     @Test
     void reportsReflectRegisteredMovements() throws Exception {
         String paidMemberReceivable = createMemberReceivable("REP-001", "Ana", "Reyes");
         String exchangedMemberReceivable = createMemberReceivable("REP-002", "Bruno", "Vidal");
-        
-        mockMvc.perform(
+        createStallReceivable("REP-01");
+
+        MvcResult paymentResult = mockMvc.perform(
             post("/api/payments").header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"accountReceivableUuids": ["%s"]}
                 """.formatted(paidMemberReceivable))
-        ).andExpect(status().isCreated());
+        ).andExpect(status().isCreated()).andReturn();
+        long paymentReceiptCorrelative =
+            objectMapper.readTree(paymentResult.getResponse().getContentAsString()).get("receipt").get("correlativeNumber").asLong();
 
         mockMvc.perform(
             post("/api/bank-exchanges").header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
@@ -179,11 +202,14 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
                 """.formatted(exchangedMemberReceivable, bankUuid))
         ).andExpect(status().isCreated());
 
-        mockMvc.perform(
+        MvcResult incomeResult = mockMvc.perform(
             post("/api/incomes").header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"depositorName": "Carla Soto", "incomeCategoryUuid": "%s", "concept": "Donación", "amount": 25.00}
                 """.formatted(incomeCategoryUuid))
-        ).andExpect(status().isCreated());
+        ).andExpect(status().isCreated()).andReturn();
+        long incomeReceiptCorrelative =
+            objectMapper.readTree(incomeResult.getResponse().getContentAsString()).get("receipt").get("correlativeNumber").asLong();
+        Set<Long> ownIncomeReceiptCorrelatives = Set.of(paymentReceiptCorrelative, incomeReceiptCorrelative);
 
         MvcResult registeredExpense = mockMvc.perform(
             post("/api/expenses").header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
@@ -200,7 +226,7 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
         XSSFWorkbook dailyMovements = downloadWorkbook(
             get("/api/reports/movements/daily").param("date", today.toString()).header("Authorization", authHeader)
         );
-        assertTotalsInclude(dailyMovements, "Income", new BigDecimal("75.00"));
+        assertReceiptDetailsSumTo(dailyMovements, ownIncomeReceiptCorrelatives, new BigDecimal("75.00"));
         assertTotalsInclude(dailyMovements, "BankTransaction", new BigDecimal("50.00"));
         assertTotalsInclude(dailyMovements, "Expense", new BigDecimal("80.00"));
 
@@ -209,7 +235,7 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
                 .param("year", String.valueOf(today.getYear())).param("month", String.valueOf(today.getMonthValue()))
                 .header("Authorization", cashierAuthHeader)
         );
-        assertTotalsInclude(monthlyMovements, "Income", new BigDecimal("75.00"));
+        assertReceiptDetailsSumTo(monthlyMovements, ownIncomeReceiptCorrelatives, new BigDecimal("75.00"));
 
         XSSFWorkbook totalsMovements = downloadWorkbook(
             get("/api/reports/movements/totals").param("date", today.toString()).header("Authorization", authHeader)
@@ -282,6 +308,30 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
             }
         }
         return null;
+    }
+
+    /**
+     * A diferencia de {@link #assertTotalsInclude}, no confía en el total agregado por tipo:
+     * el reporte "Movimientos" abarca TODOS los recibos emitidos ese día/mes en el contenedor
+     * Postgres compartido entre clases de test (patrón "singleton container" de
+     * {@link AbstractIntegrationTest}), y {@code PaymentConcurrencyIntegrationTest} deja recibos
+     * "Income" reales (no revertidos, corre sin {@code @Transactional}) fechados hoy. Suma solo
+     * las filas de detalle cuyo correlativo generó este test, para no depender de qué más se
+     * haya ejecutado antes en el mismo proceso.
+     */
+    private void assertReceiptDetailsSumTo(XSSFWorkbook workbook, Set<Long> correlativeNumbers, BigDecimal expectedTotal) {
+        Sheet sheet = workbook.getSheet("Movimientos");
+        BigDecimal sum = BigDecimal.ZERO;
+        for (Row row : sheet) {
+            Cell correlativeCell = row.getCell(1);
+            if (correlativeCell == null || correlativeCell.getCellType() != CellType.NUMERIC) {
+                continue;
+            }
+            if (correlativeNumbers.contains((long) correlativeCell.getNumericCellValue())) {
+                sum = sum.add(BigDecimal.valueOf(row.getCell(3).getNumericCellValue()));
+            }
+        }
+        assertThat(sum.doubleValue()).isEqualTo(expectedTotal.doubleValue());
     }
 
     private void assertTotalsInclude(XSSFWorkbook workbook, String typeName, BigDecimal expectedTotal) {

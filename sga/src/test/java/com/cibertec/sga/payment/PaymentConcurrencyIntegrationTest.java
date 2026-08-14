@@ -8,9 +8,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.cibertec.sga.common.AbstractIntegrationTest;
 import com.cibertec.sga.common.result.Result;
+import com.cibertec.sga.common.security.AuthenticatedUser;
 import com.cibertec.sga.payment.application.IPaymentService;
 import com.cibertec.sga.payment.domain.error.PaymentError;
 import com.cibertec.sga.payment.domain.model.Payment;
+import com.cibertec.sga.user.domain.repository.IUserRepository;
+import com.cibertec.sga.user.infrastructure.persistence.UserJpaRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -28,6 +31,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.concurrent.DelegatingSecurityContextExecutorService;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.JsonNode;
@@ -60,9 +69,16 @@ class PaymentConcurrencyIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private IPaymentService paymentService;
 
+    @Autowired
+    private IUserRepository userRepository;
+
+    @Autowired
+    private UserJpaRepository userJpaRepository;
+
     private String authHeader;
     private String stage1Uuid;
     private String memberServiceUuid;
+    private SecurityContext adminSecurityContext;
 
     @BeforeEach
     void loginAndCreateReferences() throws Exception {
@@ -72,6 +88,7 @@ class PaymentConcurrencyIntegrationTest extends AbstractIntegrationTest {
                 """)
         ).andReturn();
         authHeader = "Bearer " + objectMapper.readTree(login.getResponse().getContentAsString()).get("accessToken").asString();
+        adminSecurityContext = buildSecurityContext("admin");
 
         MvcResult stages = mockMvc.perform(get("/api/stages").header("Authorization", authHeader)).andReturn();
         stage1Uuid = findStageUuidByCode(objectMapper.readTree(stages.getResponse().getContentAsString()), 1);
@@ -197,9 +214,29 @@ class PaymentConcurrencyIntegrationTest extends AbstractIntegrationTest {
         assertThat(correlativos).hasSize(count);
     }
 
+    /**
+     * Construye el mismo tipo de principal que {@code JwtAuthenticationFilter} deja en el
+     * {@code SecurityContext} de cada request HTTP real. Los hilos de {@link #runConcurrently}
+     * llaman a {@code paymentService.processPayment} directamente (sin pasar por MockMvc), así que
+     * nunca corren ese filtro — sin este contexto, el {@code AuditorAware} de
+     * {@code ReceiptEntity.userId} (@CreatedBy) no resuelve ningún usuario y el insert del recibo
+     * viola la restricción NOT NULL de {@code UserId}.
+     */
+    private SecurityContext buildSecurityContext(String username) {
+        var user = userRepository.findByUsername(username).orElseThrow();
+        var userEntity = userJpaRepository.findByUsername(username).orElseThrow();
+        var authenticatedUser = new AuthenticatedUser(userEntity.getId(), user.getUuid(), user.getUsername(), user.getRoleName());
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+            authenticatedUser, null, List.of(new SimpleGrantedAuthority("ROLE_" + user.getRoleName()))
+        );
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        return context;
+    }
+
     private <T> List<T> runConcurrently(List<Callable<T>> tasks) throws Exception {
         int parallelism = tasks.size();
-        ExecutorService executor = Executors.newFixedThreadPool(parallelism);
+        ExecutorService executor = new DelegatingSecurityContextExecutorService(Executors.newFixedThreadPool(parallelism), adminSecurityContext);
         CountDownLatch ready = new CountDownLatch(parallelism);
         CountDownLatch start = new CountDownLatch(1);
         List<Future<T>> futures = new ArrayList<>();
