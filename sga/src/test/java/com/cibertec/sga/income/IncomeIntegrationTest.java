@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.cibertec.sga.common.AbstractIntegrationTest;
+import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -113,5 +114,23 @@ class IncomeIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(get(BASE_URL).header("Authorization", cashierAuthHeader))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content.length()").value(1));
+    }
+
+    @Test
+    void listFiltersByDate() throws Exception {
+        mockMvc.perform(
+            post(BASE_URL).header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"depositorName": "Bruno Vidal", "incomeCategoryUuid": "%s", "concept": "Donación", "amount": 40.00}
+                """.formatted(incomeCategoryUuid))
+        ).andExpect(status().isCreated());
+
+        mockMvc.perform(get(BASE_URL).param("date", LocalDate.now().toString()).header("Authorization", cashierAuthHeader))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].depositorName").value("Bruno Vidal"));
+
+        mockMvc.perform(get(BASE_URL).param("date", LocalDate.now().minusDays(1).toString()).header("Authorization", cashierAuthHeader))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(0));
     }
 }

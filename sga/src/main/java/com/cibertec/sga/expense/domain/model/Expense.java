@@ -25,6 +25,7 @@ public final class Expense {
     private final ExpenseStatus status;
     private final Receipt receipt;
     private final ExpenseBulkUploadRef bulkUpload;
+    private final CreatedByRef createdBy;
 
     private Expense(Builder builder) {
         this.uuid = builder.uuid;
@@ -37,6 +38,7 @@ public final class Expense {
         this.status = builder.status;
         this.receipt = builder.receipt;
         this.bulkUpload = builder.bulkUpload;
+        this.createdBy = builder.createdBy;
     }
 
     public UUID getUuid() {
@@ -79,6 +81,10 @@ public final class Expense {
         return bulkUpload;
     }
 
+    public CreatedByRef getCreatedBy() {
+        return createdBy;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -94,6 +100,7 @@ public final class Expense {
         private ExpenseStatus status;
         private Receipt receipt;
         private ExpenseBulkUploadRef bulkUpload;
+        private CreatedByRef createdBy;
 
         public Builder uuid(UUID uuid) {
             this.uuid = uuid;
@@ -142,6 +149,11 @@ public final class Expense {
 
         public Builder bulkUpload(ExpenseBulkUploadRef bulkUpload) {
             this.bulkUpload = bulkUpload;
+            return this;
+        }
+
+        public Builder createdBy(CreatedByRef createdBy) {
+            this.createdBy = createdBy;
             return this;
         }
 

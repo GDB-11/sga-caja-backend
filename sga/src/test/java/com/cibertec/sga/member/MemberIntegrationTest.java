@@ -73,6 +73,22 @@ class MemberIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void createWithShareNumberAndBirthDateRoundTripsBothFields() throws Exception {
+        MvcResult created = mockMvc.perform(
+            post(BASE_URL).header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"code": "M-007", "firstName": "Sonia", "lastName": "Reyes", "shareNumber": "ACC-42",
+                 "stageUuid": "%s", "birthDate": "1990-05-15"}
+                """.formatted(stageUuid))
+        ).andExpect(status().isCreated()).andReturn();
+        String uuid = objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asString();
+
+        mockMvc.perform(get(BASE_URL + "/{uuid}", uuid).header("Authorization", authHeader))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.shareNumber").value("ACC-42"))
+            .andExpect(jsonPath("$.birthDate").value("1990-05-15"));
+    }
+
+    @Test
     void createWithDuplicateCodeReturnsConflict() throws Exception {
         createMember("M-002");
 

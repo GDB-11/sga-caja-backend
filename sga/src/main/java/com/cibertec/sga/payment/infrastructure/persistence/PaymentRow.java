@@ -29,4 +29,8 @@ public interface PaymentRow {
     UUID getReceiptTypeUuid();
 
     String getReceiptTypeName();
+
+    UUID getCreatedByUuid();
+
+    String getCreatedByUsername();
 }

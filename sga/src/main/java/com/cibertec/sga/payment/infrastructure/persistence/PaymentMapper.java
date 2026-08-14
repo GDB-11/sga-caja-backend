@@ -1,6 +1,7 @@
 package com.cibertec.sga.payment.infrastructure.persistence;
 
 import com.cibertec.sga.accountreceivable.infrastructure.persistence.AccountReceivableJpaRepository;
+import com.cibertec.sga.payment.domain.model.CreatedByRef;
 import com.cibertec.sga.payment.domain.model.Payment;
 import com.cibertec.sga.payment.domain.model.PaymentDetailRef;
 import com.cibertec.sga.receipt.domain.model.Receipt;
@@ -58,6 +59,7 @@ public class PaymentMapper {
             .paymentDate(row.getPaymentDate())
             .totalAmount(row.getTotalAmount())
             .details(details)
+            .createdBy(new CreatedByRef(row.getCreatedByUuid(), row.getCreatedByUsername()))
             .build();
     }
 }

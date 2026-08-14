@@ -3,6 +3,7 @@ package com.cibertec.sga.service;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -142,5 +143,45 @@ class ServiceIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(patch(BASE_URL + "/{uuid}/deactivate", uuid).header("Authorization", authHeader))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.active").value(false));
+    }
+
+    @Test
+    void updateExistingServiceChangesFields() throws Exception {
+        String uuid = createFixedCostService("Limpieza");
+
+        mockMvc.perform(
+            put(BASE_URL + "/{uuid}", uuid).header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"name": "Limpieza Premium", "recurrenceTypeUuid": "%s", "chargeTargetTypeUuid": "%s", "currencyUuid": "%s",
+                 "consumptionBased": false, "cost": 150.00}
+                """.formatted(recurrenceTypeUuid, stallChargeTargetTypeUuid, currencyUuid))
+        )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.name").value("Limpieza Premium"))
+            .andExpect(jsonPath("$.cost").value(150.00));
+    }
+
+    @Test
+    void updateNonExistentUuidReturnsNotFound() throws Exception {
+        mockMvc.perform(
+            put(BASE_URL + "/{uuid}", UUID.randomUUID())
+                .header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"name": "No existe", "recurrenceTypeUuid": "%s", "chargeTargetTypeUuid": "%s", "currencyUuid": "%s",
+                 "consumptionBased": false, "cost": 10.00}
+                """.formatted(recurrenceTypeUuid, stallChargeTargetTypeUuid, currencyUuid))
+        ).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void updateWithUnitCostInsteadOfCostReturnsBadRequest() throws Exception {
+        String uuid = createFixedCostService("Jardineria");
+
+        mockMvc.perform(
+            put(BASE_URL + "/{uuid}", uuid).header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"name": "Jardineria", "recurrenceTypeUuid": "%s", "chargeTargetTypeUuid": "%s", "currencyUuid": "%s",
+                 "consumptionBased": false, "unitCost": 5.00}
+                """.formatted(recurrenceTypeUuid, stallChargeTargetTypeUuid, currencyUuid))
+        )
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("SERVICE_INVALID_COST_CONFIGURATION"));
     }
 }

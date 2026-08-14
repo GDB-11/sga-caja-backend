@@ -1,5 +1,6 @@
 package com.cibertec.sga.expense.infrastructure.persistence;
 
+import com.cibertec.sga.expense.domain.model.CreatedByRef;
 import com.cibertec.sga.expense.domain.model.Expense;
 import com.cibertec.sga.expense.domain.model.ExpenseBulkUploadRef;
 import com.cibertec.sga.expensereason.domain.model.ExpenseReason;
@@ -112,6 +113,7 @@ public class ExpenseMapper {
             .status(status)
             .receipt(receipt)
             .bulkUpload(bulkUpload)
+            .createdBy(new CreatedByRef(row.getCreatedByUuid(), row.getCreatedByUsername()))
             .build();
     }
 }

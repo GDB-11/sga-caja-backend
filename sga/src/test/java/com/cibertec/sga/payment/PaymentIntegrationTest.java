@@ -33,6 +33,8 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
     private String authHeader;
     private String cashierAuthHeader;
     private String memberServiceUuid;
+    private String stallServiceUuid;
+    private String businessTypeUuid;
     private String stage1Uuid;
 
     @BeforeEach
@@ -59,8 +61,9 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
         String recurrenceTypeUuid = findUuidByName(objectMapper.readTree(recurrenceTypes.getResponse().getContentAsString()), "Monthly");
 
         MvcResult chargeTargetTypes = mockMvc.perform(get("/api/charge-target-types").header("Authorization", authHeader)).andReturn();
-        String memberChargeTargetTypeUuid =
-            findUuidByName(objectMapper.readTree(chargeTargetTypes.getResponse().getContentAsString()), "Member");
+        JsonNode chargeTargetTypesJson = objectMapper.readTree(chargeTargetTypes.getResponse().getContentAsString());
+        String memberChargeTargetTypeUuid = findUuidByName(chargeTargetTypesJson, "Member");
+        String stallChargeTargetTypeUuid = findUuidByName(chargeTargetTypesJson, "Stall");
 
         MvcResult currencies = mockMvc.perform(get("/api/currencies").header("Authorization", authHeader)).andReturn();
         String currencyUuid = objectMapper.readTree(currencies.getResponse().getContentAsString()).get(0).get("uuid").asString();
@@ -72,6 +75,21 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
                 """.formatted(recurrenceTypeUuid, memberChargeTargetTypeUuid, currencyUuid))
         ).andExpect(status().isCreated()).andReturn();
         memberServiceUuid = objectMapper.readTree(service.getResponse().getContentAsString()).get("uuid").asString();
+
+        MvcResult stallService = mockMvc.perform(
+            post("/api/services").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"name": "Mantenimiento Puesto Pago Test", "recurrenceTypeUuid": "%s", "chargeTargetTypeUuid": "%s",
+                 "currencyUuid": "%s", "consumptionBased": false, "cost": 30.00}
+                """.formatted(recurrenceTypeUuid, stallChargeTargetTypeUuid, currencyUuid))
+        ).andExpect(status().isCreated()).andReturn();
+        stallServiceUuid = objectMapper.readTree(stallService.getResponse().getContentAsString()).get("uuid").asString();
+
+        MvcResult businessType = mockMvc.perform(
+            post("/api/business-types").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"name": "Abarrotes Pago Test"}
+                """)
+        ).andExpect(status().isCreated()).andReturn();
+        businessTypeUuid = objectMapper.readTree(businessType.getResponse().getContentAsString()).get("uuid").asString();
     }
 
     private String findUuidByName(JsonNode array, String name) {
@@ -116,6 +134,29 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
             }
         }
         throw new IllegalStateException("No se encontró la cuenta por cobrar generada para " + firstName + " " + lastName);
+    }
+
+    private String createStallAndReceivable(String number) throws Exception {
+        mockMvc.perform(
+            post("/api/stalls").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"number": "%s", "businessTypeUuid": "%s"}
+                """.formatted(number, businessTypeUuid))
+        ).andExpect(status().isCreated());
+
+        MvcResult generated = mockMvc.perform(
+            post("/api/account-receivables/generate-by-stall")
+                .header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"serviceUuid": "%s", "periodStartDate": "2026-01-01", "periodEndDate": "2026-01-31", "amount": 30.00}
+                """.formatted(stallServiceUuid))
+        ).andExpect(status().isCreated()).andReturn();
+
+        JsonNode created = objectMapper.readTree(generated.getResponse().getContentAsString());
+        for (JsonNode node : created) {
+            if (node.get("stall").get("number").asString().equals(number)) {
+                return node.get("uuid").asString();
+            }
+        }
+        throw new IllegalStateException("No se encontró la cuenta por cobrar generada para el puesto " + number);
     }
 
     @Test
@@ -200,5 +241,108 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
                 {"accountReceivableUuids": []}
                 """)
         ).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void computeTotalSumsMultipleSelectedPendingReceivables() throws Exception {
+        String receivable1 = createMemberAndReceivable("PAY-005", "Hugo", "Paredes");
+        String receivable2 = createMemberAndReceivable("PAY-006", "Vera", "Campos");
+
+        mockMvc.perform(
+            post(BASE_URL + "/compute-total").header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"accountReceivableUuids": ["%s", "%s"]}
+                """.formatted(receivable1, receivable2))
+        )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.total").value(100.00))
+            .andExpect(jsonPath("$.items.length()").value(2));
+    }
+
+    @Test
+    void processPaymentWithMultipleReceivablesEmitsSingleReceiptCoveringTotal() throws Exception {
+        String receivable1 = createMemberAndReceivable("PAY-007", "Ines", "Delgado");
+        String receivable2 = createMemberAndReceivable("PAY-008", "Raul", "Ibarra");
+
+        mockMvc.perform(
+            post(BASE_URL).header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"accountReceivableUuids": ["%s", "%s"]}
+                """.formatted(receivable1, receivable2))
+        )
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.totalAmount").value(100.00))
+            .andExpect(jsonPath("$.receipt.correlativeNumber").isNumber())
+            .andExpect(jsonPath("$.details.length()").value(2));
+
+        mockMvc.perform(get("/api/account-receivables/{uuid}", receivable1).header("Authorization", authHeader))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status.name").value("Paid"));
+        mockMvc.perform(get("/api/account-receivables/{uuid}", receivable2).header("Authorization", authHeader))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status.name").value("Paid"));
+    }
+
+    /**
+     * RNF-04: si una de las cuentas seleccionadas ya no está pendiente, la operación completa
+     * debe rechazarse — no debe emitir un recibo parcial ni dejar la cuenta pendiente restante
+     * marcada como pagada sin comprobante. {@code PaymentService.validateSelectionForUpdate}
+     * valida la lista completa antes de escribir nada, así que esta prueba fija ese
+     * comportamiento como contrato, no solo como detalle de implementación.
+     */
+    @Test
+    void processPaymentWithPartiallyPaidSelectionFailsAndLeavesPendingReceivableUntouched() throws Exception {
+        String alreadyPaidReceivable = createMemberAndReceivable("PAY-009", "Teo", "Cabrera");
+        mockMvc.perform(
+            post(BASE_URL).header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"accountReceivableUuids": ["%s"]}
+                """.formatted(alreadyPaidReceivable))
+        ).andExpect(status().isCreated());
+
+        String stillPendingReceivable = createMemberAndReceivable("PAY-010", "Gaby", "Montes");
+
+        mockMvc.perform(
+            post(BASE_URL).header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"accountReceivableUuids": ["%s", "%s"]}
+                """.formatted(alreadyPaidReceivable, stillPendingReceivable))
+        )
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("PAYMENT_ACCOUNT_RECEIVABLE_NOT_PENDING"));
+
+        mockMvc.perform(get("/api/account-receivables/{uuid}", stillPendingReceivable).header("Authorization", authHeader))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status.name").value("Pending"));
+    }
+
+    @Test
+    void processPaymentForStallReceivableEmitsReceiptAndMarksReceivablePaid() throws Exception {
+        String receivableUuid = createStallAndReceivable("PAY-P-001");
+
+        mockMvc.perform(
+            post(BASE_URL).header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"accountReceivableUuids": ["%s"]}
+                """.formatted(receivableUuid))
+        )
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.totalAmount").value(30.00))
+            .andExpect(jsonPath("$.receipt.receiptTypeName").value("Income"))
+            .andExpect(jsonPath("$.receipt.correlativeNumber").isNumber())
+            .andExpect(jsonPath("$.details.length()").value(1));
+
+        mockMvc.perform(get("/api/account-receivables/{uuid}", receivableUuid).header("Authorization", authHeader))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status.name").value("Paid"));
+    }
+
+    @Test
+    void processPaymentRecordsActingUserForAudit() throws Exception {
+        String receivableUuid = createMemberAndReceivable("PAY-011", "Wendy", "Alva");
+
+        mockMvc.perform(
+            post(BASE_URL).header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"accountReceivableUuids": ["%s"]}
+                """.formatted(receivableUuid))
+        )
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.createdBy.username").value("cashier"))
+            .andExpect(jsonPath("$.createdBy.uuid").isNotEmpty());
     }
 }

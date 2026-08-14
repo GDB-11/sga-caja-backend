@@ -95,6 +95,16 @@ class ExpenseIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void registerRecordsActingUserForAudit() throws Exception {
+        String uuid = registerExpense("EXP-AUDIT-001");
+
+        mockMvc.perform(get(BASE_URL + "/{uuid}", uuid).header("Authorization", cashierAuthHeader))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.createdBy.username").value("cashier"))
+            .andExpect(jsonPath("$.createdBy.uuid").isNotEmpty());
+    }
+
+    @Test
     void registerWithAdministratorRoleReturnsForbidden() throws Exception {
         mockMvc.perform(
             post(BASE_URL).header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""

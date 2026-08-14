@@ -24,7 +24,8 @@ public class PaymentDtoMapper {
             ),
             payment.getPaymentDate(),
             payment.getTotalAmount(),
-            payment.getDetails().stream().map(this::toResponse).toList()
+            payment.getDetails().stream().map(this::toResponse).toList(),
+            new PaymentResponse.CreatedByRef(payment.getCreatedBy().uuid(), payment.getCreatedBy().username())
         );
     }
 

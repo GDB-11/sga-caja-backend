@@ -14,7 +14,8 @@ public record ExpenseResponse(
     ExpenseReasonRef expenseReason,
     StatusRef status,
     ReceiptRef receipt,
-    BulkUploadRef bulkUpload
+    BulkUploadRef bulkUpload,
+    CreatedByRef createdBy
 ) {
     public record ProviderRef(UUID uuid, String name) {
     }
@@ -29,5 +30,8 @@ public record ExpenseResponse(
     }
 
     public record BulkUploadRef(UUID uuid, String fileName) {
+    }
+
+    public record CreatedByRef(UUID uuid, String username) {
     }
 }

@@ -40,6 +40,7 @@ class AccountReceivableIntegrationTest extends AbstractIntegrationTest {
     private String businessTypeUuid;
     private String stage1Uuid;
     private String stage2Uuid;
+    private String stage3Uuid;
     private String stallServiceUuid;
     private String memberServiceUuid;
 
@@ -72,6 +73,7 @@ class AccountReceivableIntegrationTest extends AbstractIntegrationTest {
         JsonNode stagesJson = objectMapper.readTree(stages.getResponse().getContentAsString());
         stage1Uuid = findStageUuidByCode(stagesJson, 1);
         stage2Uuid = findStageUuidByCode(stagesJson, 2);
+        stage3Uuid = findStageUuidByCode(stagesJson, 3);
 
         MvcResult recurrenceTypes = mockMvc.perform(get("/api/recurrence-types").header("Authorization", authHeader)).andReturn();
         String recurrenceTypeUuid = findUuidByName(objectMapper.readTree(recurrenceTypes.getResponse().getContentAsString()), "Monthly");
@@ -118,12 +120,13 @@ class AccountReceivableIntegrationTest extends AbstractIntegrationTest {
         return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asString();
     }
 
-    private void createStall(String number) throws Exception {
-        mockMvc.perform(
+    private String createStall(String number) throws Exception {
+        MvcResult created = mockMvc.perform(
             post("/api/stalls").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"number": "%s", "businessTypeUuid": "%s"}
                 """.formatted(number, businessTypeUuid))
-        ).andExpect(status().isCreated());
+        ).andExpect(status().isCreated()).andReturn();
+        return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asString();
     }
 
     private String createMember(String code, String firstName, String lastName, String stageUuid) throws Exception {
@@ -285,6 +288,43 @@ class AccountReceivableIntegrationTest extends AbstractIntegrationTest {
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].accountReceivable.status.name").value("Pending"))
             .andExpect(jsonPath("$[0].settlementMethod").doesNotExist());
+    }
+
+    @Test
+    void summaryByStallReturnsReceivablesWithoutMovementWhilePending() throws Exception {
+        String stallUuid = createStall("AR-SUM-ST-001");
+        mockMvc.perform(
+            post(BASE_URL + "/generate-by-stall").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"serviceUuid": "%s", "periodStartDate": "2026-01-01", "periodEndDate": "2026-01-31", "amount": 30.00}
+                """.formatted(stallServiceUuid))
+        ).andExpect(status().isCreated());
+
+        mockMvc.perform(get(BASE_URL + "/summary").param("stallUuid", stallUuid).header("Authorization", authHeader))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].accountReceivable.status.name").value("Pending"))
+            .andExpect(jsonPath("$[0].accountReceivable.stall.uuid").value(stallUuid))
+            .andExpect(jsonPath("$[0].settlementMethod").doesNotExist());
+    }
+
+    @Test
+    void summaryWithUnknownStallReturnsNotFound() throws Exception {
+        mockMvc.perform(get(BASE_URL + "/summary").param("stallUuid", UUID.randomUUID().toString()).header("Authorization", authHeader))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void generateByMemberIncludesStage3Members() throws Exception {
+        String member3Uuid = createMember("AR-M-ST3-001", "Carlos", "Nunez", stage3Uuid);
+
+        MvcResult generated = mockMvc.perform(
+            post(BASE_URL + "/generate-by-member").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"serviceUuid": "%s", "periodStartDate": "2026-01-01", "periodEndDate": "2026-01-31", "amount": 30.00,
+                 "stageCodes": [3], "uniqueMembers": false}
+                """.formatted(memberServiceUuid))
+        ).andExpect(status().isCreated()).andReturn();
+
+        assertThat(memberFullNamesFor(generated, Set.of(member3Uuid))).containsExactly("Carlos Nunez");
     }
 
     @Test

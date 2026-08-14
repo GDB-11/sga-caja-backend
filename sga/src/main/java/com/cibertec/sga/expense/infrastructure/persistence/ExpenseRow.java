@@ -50,4 +50,8 @@ public interface ExpenseRow {
     UUID getBulkUploadUuid();
 
     String getBulkUploadFileName();
+
+    UUID getCreatedByUuid();
+
+    String getCreatedByUsername();
 }

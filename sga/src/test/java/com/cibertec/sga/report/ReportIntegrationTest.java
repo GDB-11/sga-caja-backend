@@ -226,7 +226,7 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
         XSSFWorkbook dailyMovements = downloadWorkbook(
             get("/api/reports/movements/daily").param("date", today.toString()).header("Authorization", authHeader)
         );
-        assertReceiptDetailsSumTo(dailyMovements, ownIncomeReceiptCorrelatives, new BigDecimal("75.00"));
+        assertReceiptDetailsSumTo(dailyMovements, "Income", ownIncomeReceiptCorrelatives, new BigDecimal("75.00"));
         assertTotalsInclude(dailyMovements, "BankTransaction", new BigDecimal("50.00"));
         assertTotalsInclude(dailyMovements, "Expense", new BigDecimal("80.00"));
 
@@ -235,7 +235,7 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
                 .param("year", String.valueOf(today.getYear())).param("month", String.valueOf(today.getMonthValue()))
                 .header("Authorization", cashierAuthHeader)
         );
-        assertReceiptDetailsSumTo(monthlyMovements, ownIncomeReceiptCorrelatives, new BigDecimal("75.00"));
+        assertReceiptDetailsSumTo(monthlyMovements, "Income", ownIncomeReceiptCorrelatives, new BigDecimal("75.00"));
 
         XSSFWorkbook totalsMovements = downloadWorkbook(
             get("/api/reports/movements/totals").param("date", today.toString()).header("Authorization", authHeader)
@@ -290,6 +290,72 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
             .andExpect(jsonPath("$.error").value("REPORT_INVALID_PERIOD"));
     }
 
+    @Test
+    void reportEndpointsRequireAuthentication() throws Exception {
+        mockMvc.perform(get("/api/reports/movements/daily").param("date", "2026-01-01")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/reports/movements/monthly").param("year", "2026").param("month", "1"))
+            .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/reports/movements/totals").param("date", "2026-01-01")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/reports/members").param("year", "2026").param("month", "1")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/reports/non-members").param("year", "2026").param("month", "1")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/reports/expenses").param("year", "2026").param("month", "1")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/reports/banks").param("year", "2026").param("month", "1")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void totalsMovementsWithInvalidMonthInPeriodReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/reports/movements/totals").param("year", "2026").param("month", "13").header("Authorization", authHeader))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("REPORT_INVALID_PERIOD"));
+    }
+
+    @Test
+    void nonMembersReportMissingPeriodReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/reports/non-members").header("Authorization", authHeader))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("REPORT_MISSING_PERIOD"));
+    }
+
+    @Test
+    void expensesReportMissingPeriodReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/reports/expenses").header("Authorization", authHeader))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("REPORT_MISSING_PERIOD"));
+    }
+
+    @Test
+    void banksReportMissingPeriodReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/reports/banks").header("Authorization", authHeader))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("REPORT_MISSING_PERIOD"));
+    }
+
+    /**
+     * Un período sin movimientos no es un error (RF-32): debe seguir devolviendo un XLSX válido,
+     * solo que con el total general en cero — nunca se probó que el camino "sin filas" no rompa
+     * la generación del workbook (fila de encabezados + fila de total sin ninguna fila de detalle
+     * en medio).
+     */
+    @Test
+    void dailyMovementsWithNoReceiptsReturnsEmptyWorkbookWithZeroTotal() throws Exception {
+        XSSFWorkbook workbook = downloadWorkbook(
+            get("/api/reports/movements/daily").param("date", "2020-01-01").header("Authorization", authHeader)
+        );
+        Row totalRow = findRowContaining(workbook.getSheet("Movimientos"), "TOTAL GENERAL");
+        assertThat(totalRow).isNotNull();
+        assertThat(totalRow.getCell(1).getNumericCellValue()).isZero();
+    }
+
+    @Test
+    void membersReportWithNoReceivablesReturnsEmptyWorkbookWithZeroTotal() throws Exception {
+        XSSFWorkbook workbook = downloadWorkbook(
+            get("/api/reports/members").param("year", "2020").param("month", "1").header("Authorization", authHeader)
+        );
+        Row totalRow = findRowContaining(workbook.getSheet("Reporte"), "TOTAL");
+        assertThat(totalRow).isNotNull();
+        assertThat(totalRow.getCell(4).getNumericCellValue()).isZero();
+    }
+
     private XSSFWorkbook downloadWorkbook(org.springframework.test.web.servlet.RequestBuilder request) throws Exception {
         MvcResult result = mockMvc.perform(request)
             .andExpect(status().isOk())
@@ -318,12 +384,21 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
      * "Income" reales (no revertidos, corre sin {@code @Transactional}) fechados hoy. Suma solo
      * las filas de detalle cuyo correlativo generó este test, para no depender de qué más se
      * haya ejecutado antes en el mismo proceso.
+     *
+     * <p>El correlativo lo asigna una secuencia POR {@code ReceiptType} (RN-04), así que un
+     * "Income" y un "Expense" registrados en el mismo test run legítimamente comparten el mismo
+     * número de correlativo — filtra también por tipo, o dos recibos de tipos distintos con
+     * correlativo coincidente se sumarían juntos.
      */
-    private void assertReceiptDetailsSumTo(XSSFWorkbook workbook, Set<Long> correlativeNumbers, BigDecimal expectedTotal) {
+    private void assertReceiptDetailsSumTo(XSSFWorkbook workbook, String typeName, Set<Long> correlativeNumbers, BigDecimal expectedTotal) {
         Sheet sheet = workbook.getSheet("Movimientos");
         BigDecimal sum = BigDecimal.ZERO;
         for (Row row : sheet) {
+            Cell typeCell = row.getCell(0);
             Cell correlativeCell = row.getCell(1);
+            if (typeCell == null || typeCell.getCellType() != CellType.STRING || !typeName.equals(typeCell.getStringCellValue())) {
+                continue;
+            }
             if (correlativeCell == null || correlativeCell.getCellType() != CellType.NUMERIC) {
                 continue;
             }

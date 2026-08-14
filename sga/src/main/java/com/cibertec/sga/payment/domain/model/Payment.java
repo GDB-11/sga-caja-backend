@@ -17,6 +17,7 @@ public final class Payment {
     private final LocalDate paymentDate;
     private final BigDecimal totalAmount;
     private final List<PaymentDetailRef> details;
+    private final CreatedByRef createdBy;
 
     private Payment(Builder builder) {
         this.uuid = builder.uuid;
@@ -24,6 +25,7 @@ public final class Payment {
         this.paymentDate = builder.paymentDate;
         this.totalAmount = builder.totalAmount;
         this.details = builder.details;
+        this.createdBy = builder.createdBy;
     }
 
     public UUID getUuid() {
@@ -46,6 +48,10 @@ public final class Payment {
         return details;
     }
 
+    public CreatedByRef getCreatedBy() {
+        return createdBy;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -56,6 +62,7 @@ public final class Payment {
         private LocalDate paymentDate;
         private BigDecimal totalAmount;
         private List<PaymentDetailRef> details = List.of();
+        private CreatedByRef createdBy;
 
         public Builder uuid(UUID uuid) {
             this.uuid = uuid;
@@ -79,6 +86,11 @@ public final class Payment {
 
         public Builder details(List<PaymentDetailRef> details) {
             this.details = details;
+            return this;
+        }
+
+        public Builder createdBy(CreatedByRef createdBy) {
+            this.createdBy = createdBy;
             return this;
         }
 

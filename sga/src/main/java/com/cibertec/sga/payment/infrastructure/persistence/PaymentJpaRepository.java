@@ -16,10 +16,12 @@ public interface PaymentJpaRepository extends JpaRepository<PaymentEntity, Long>
         SELECT p."Uuid" AS uuid, p."PaymentDate" AS payment_date, p."TotalAmount" AS total_amount,
                r."Uuid" AS receipt_uuid, r."CorrelativeNumber" AS receipt_correlative_number,
                r."IssueDate" AS receipt_issue_date, r."Amount" AS receipt_amount, r."Description" AS receipt_description,
-               rt."Uuid" AS receipt_type_uuid, rt."Name" AS receipt_type_name
+               rt."Uuid" AS receipt_type_uuid, rt."Name" AS receipt_type_name,
+               u."Uuid" AS created_by_uuid, u."Username" AS created_by_username
         FROM "Payment" p
         JOIN "Receipt" r ON r."Id" = p."ReceiptId"
         JOIN "ReceiptType" rt ON rt."Id" = r."ReceiptTypeId"
+        JOIN "User" u ON u."Id" = p."CreatedBy"
         """;
 
     @Query(nativeQuery = true, value = ROW_SELECT + " WHERE p.\"Uuid\" = :uuid")

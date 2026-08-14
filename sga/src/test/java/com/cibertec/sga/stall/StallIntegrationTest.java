@@ -3,6 +3,7 @@ package com.cibertec.sga.stall;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -138,5 +139,45 @@ class StallIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(patch(BASE_URL + "/{uuid}/deactivate", uuid).header("Authorization", authHeader))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.active").value(false));
+    }
+
+    @Test
+    void updateExistingStallChangesFieldsAndAssignsMember() throws Exception {
+        String uuid = createStall("P-007", null);
+
+        mockMvc.perform(
+            put(BASE_URL + "/{uuid}", uuid).header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"number": "P-007-EDIT", "businessTypeUuid": "%s", "memberUuid": "%s", "tenantName": "Marco Ruiz"}
+                """.formatted(businessTypeUuid, memberUuid))
+        )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.number").value("P-007-EDIT"))
+            .andExpect(jsonPath("$.member.uuid").value(memberUuid))
+            .andExpect(jsonPath("$.tenantName").value("Marco Ruiz"));
+    }
+
+    @Test
+    void updateNonExistentUuidReturnsNotFound() throws Exception {
+        mockMvc.perform(
+            put(BASE_URL + "/{uuid}", UUID.randomUUID())
+                .header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"number": "P-008", "businessTypeUuid": "%s"}
+                """.formatted(businessTypeUuid))
+        ).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void updateWithDuplicateNumberReturnsConflict() throws Exception {
+        createStall("P-009", null);
+        String otherUuid = createStall("P-010", null);
+
+        mockMvc.perform(
+            put(BASE_URL + "/{uuid}", otherUuid)
+                .header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"number": "P-009", "businessTypeUuid": "%s"}
+                """.formatted(businessTypeUuid))
+        )
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.error").value("STALL_DUPLICATE_NUMBER"));
     }
 }

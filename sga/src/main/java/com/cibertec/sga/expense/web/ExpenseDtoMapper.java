@@ -28,7 +28,8 @@ public class ExpenseDtoMapper {
             ),
             expense.getBulkUpload() == null ? null : new ExpenseResponse.BulkUploadRef(
                 expense.getBulkUpload().uuid(), expense.getBulkUpload().fileName()
-            )
+            ),
+            new ExpenseResponse.CreatedByRef(expense.getCreatedBy().uuid(), expense.getCreatedBy().username())
         );
     }
 

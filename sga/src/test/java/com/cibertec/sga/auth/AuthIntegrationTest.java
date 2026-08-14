@@ -73,6 +73,11 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void meWithMalformedTokenReturnsUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer not-a-real-jwt")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void meWithValidAccessTokenReturnsProfile() throws Exception {
         MvcResult loginResult = login("cashier", "Cashier123!");
         String accessToken = accessTokenOf(loginResult);
