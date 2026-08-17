@@ -86,4 +86,12 @@ public class BankController {
         Result<Bank, BankError> result = bankService.deactivate(uuid);
         return ResultResponse.ok(result.map(dtoMapper::toResponse), request);
     }
+
+    @PatchMapping("/{uuid}/activate")
+    @PreAuthorize("hasRole('Administrator')")
+    @Operation(summary = "Reactivar un banco")
+    public ResponseEntity<?> activate(@PathVariable UUID uuid, HttpServletRequest request) {
+        Result<Bank, BankError> result = bankService.activate(uuid);
+        return ResultResponse.ok(result.map(dtoMapper::toResponse), request);
+    }
 }

@@ -22,4 +22,6 @@ public interface IStallService {
     Result<Stall, StallError> update(UUID uuid, StallCommand command);
 
     Result<Stall, StallError> deactivate(UUID uuid);
+
+    Result<Stall, StallError> activate(UUID uuid);
 }

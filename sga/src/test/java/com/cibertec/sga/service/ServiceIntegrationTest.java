@@ -146,6 +146,24 @@ class ServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void activateExistingServiceFlipsActive() throws Exception {
+        String uuid = createFixedCostService("Fumigacion");
+        mockMvc.perform(patch(BASE_URL + "/{uuid}/deactivate", uuid).header("Authorization", authHeader))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(patch(BASE_URL + "/{uuid}/activate", uuid).header("Authorization", authHeader))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.active").value(true));
+    }
+
+    @Test
+    void activateNonExistentUuidReturnsNotFound() throws Exception {
+        mockMvc.perform(patch(BASE_URL + "/{uuid}/activate", UUID.randomUUID()).header("Authorization", authHeader))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.error").value("SERVICE_NOT_FOUND"));
+    }
+
+    @Test
     void updateExistingServiceChangesFields() throws Exception {
         String uuid = createFixedCostService("Limpieza");
 

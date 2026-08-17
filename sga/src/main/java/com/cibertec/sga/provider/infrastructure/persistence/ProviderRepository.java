@@ -53,4 +53,11 @@ public class ProviderRepository implements IProviderRepository {
         entity.setActive(false);
         return mapper.toDomain(jpaRepository.save(entity));
     }
+
+    @Override
+    public Provider activate(UUID uuid) {
+        ProviderEntity entity = jpaRepository.findByUuid(uuid).orElseThrow();
+        entity.setActive(true);
+        return mapper.toDomain(jpaRepository.save(entity));
+    }
 }

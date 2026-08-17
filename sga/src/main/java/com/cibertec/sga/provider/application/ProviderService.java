@@ -61,4 +61,13 @@ public class ProviderService implements IProviderService {
 
         return Result.success(providerRepository.deactivate(uuid));
     }
+
+    @Override
+    public Result<Provider, ProviderError> activate(UUID uuid) {
+        if (providerRepository.findByUuid(uuid).isEmpty()) {
+            return Result.failure(new ProviderError.NotFound(uuid.toString()));
+        }
+
+        return Result.success(providerRepository.activate(uuid));
+    }
 }

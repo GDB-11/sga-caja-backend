@@ -88,4 +88,13 @@ public class BankService implements IBankService {
 
         return Result.success(bankRepository.deactivate(uuid));
     }
+
+    @Override
+    public Result<Bank, BankError> activate(UUID uuid) {
+        if (bankRepository.findByUuid(uuid).isEmpty()) {
+            return Result.failure(new BankError.NotFound(uuid.toString()));
+        }
+
+        return Result.success(bankRepository.activate(uuid));
+    }
 }

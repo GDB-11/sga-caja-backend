@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.cibertec.sga.common.AbstractIntegrationTest;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -98,5 +99,23 @@ class ProviderIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(patch(BASE_URL + "/{uuid}/deactivate", uuid).header("Authorization", authHeader))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.active").value(false));
+    }
+
+    @Test
+    void activateExistingProviderFlipsActive() throws Exception {
+        String uuid = createProvider("Proveedor a reactivar");
+        mockMvc.perform(patch(BASE_URL + "/{uuid}/deactivate", uuid).header("Authorization", authHeader))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(patch(BASE_URL + "/{uuid}/activate", uuid).header("Authorization", authHeader))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.active").value(true));
+    }
+
+    @Test
+    void activateNonExistentUuidReturnsNotFound() throws Exception {
+        mockMvc.perform(patch(BASE_URL + "/{uuid}/activate", UUID.randomUUID()).header("Authorization", authHeader))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.error").value("PROVIDER_NOT_FOUND"));
     }
 }

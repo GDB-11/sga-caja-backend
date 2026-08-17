@@ -50,4 +50,12 @@ public class ServiceRepository implements IServiceRepository {
         jpaRepository.save(entity);
         return findByUuid(uuid).orElseThrow();
     }
+
+    @Override
+    public Service activate(UUID uuid) {
+        ServiceEntity entity = jpaRepository.findEntityByUuid(uuid).orElseThrow();
+        entity.setActive(true);
+        jpaRepository.save(entity);
+        return findByUuid(uuid).orElseThrow();
+    }
 }

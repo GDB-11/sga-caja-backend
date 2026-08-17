@@ -92,4 +92,13 @@ public class MemberService implements IMemberService {
 
         return Result.success(memberRepository.deactivate(uuid));
     }
+
+    @Override
+    public Result<Member, MemberError> activate(UUID uuid) {
+        if (memberRepository.findByUuid(uuid).isEmpty()) {
+            return Result.failure(new MemberError.NotFound(uuid.toString()));
+        }
+
+        return Result.success(memberRepository.activate(uuid));
+    }
 }

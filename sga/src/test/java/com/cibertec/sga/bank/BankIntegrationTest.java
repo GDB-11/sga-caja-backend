@@ -263,4 +263,30 @@ class BankIntegrationTest extends AbstractIntegrationTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.active").value(false));
     }
+
+    @Test
+    void activateExistingBankFlipsActive() throws Exception {
+        String uuid = createBank("ACC-018");
+        mockMvc.perform(patch(BASE_URL + "/{uuid}/deactivate", uuid).header("Authorization", authHeader))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(patch(BASE_URL + "/{uuid}/activate", uuid).header("Authorization", authHeader))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.active").value(true));
+    }
+
+    @Test
+    void activateNonExistentUuidReturnsNotFound() throws Exception {
+        mockMvc.perform(patch(BASE_URL + "/{uuid}/activate", UUID.randomUUID()).header("Authorization", authHeader))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.error").value("BANK_NOT_FOUND"));
+    }
+
+    @Test
+    void activateWithCashierRoleReturnsForbidden() throws Exception {
+        String uuid = createBank("ACC-019");
+
+        mockMvc.perform(patch(BASE_URL + "/{uuid}/activate", uuid).header("Authorization", cashierAuthHeader))
+            .andExpect(status().isForbidden());
+    }
 }

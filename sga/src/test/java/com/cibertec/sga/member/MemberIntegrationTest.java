@@ -165,4 +165,26 @@ class MemberIntegrationTest extends AbstractIntegrationTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].code").value("M-006"));
     }
+
+    @Test
+    void activateExistingMemberFlipsActiveAndIsFilterable() throws Exception {
+        String uuid = createMember("M-008");
+        mockMvc.perform(patch(BASE_URL + "/{uuid}/deactivate", uuid).header("Authorization", authHeader))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(patch(BASE_URL + "/{uuid}/activate", uuid).header("Authorization", authHeader))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.active").value(true));
+
+        mockMvc.perform(get(BASE_URL).param("search", "M-008").param("active", "true").header("Authorization", authHeader))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].code").value("M-008"));
+    }
+
+    @Test
+    void activateNonExistentUuidReturnsNotFound() throws Exception {
+        mockMvc.perform(patch(BASE_URL + "/{uuid}/activate", UUID.randomUUID()).header("Authorization", authHeader))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.error").value("MEMBER_NOT_FOUND"));
+    }
 }

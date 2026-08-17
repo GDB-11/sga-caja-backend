@@ -24,4 +24,6 @@ public interface IBankRepository {
     Bank update(UUID uuid, Bank bank);
 
     Bank deactivate(UUID uuid);
+
+    Bank activate(UUID uuid);
 }

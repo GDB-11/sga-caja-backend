@@ -20,4 +20,6 @@ public interface IServiceRepository {
     Service update(UUID uuid, Service service);
 
     Service deactivate(UUID uuid);
+
+    Service activate(UUID uuid);
 }

@@ -23,4 +23,6 @@ public interface IMemberService {
     Result<Member, MemberError> update(UUID uuid, MemberCommand command);
 
     Result<Member, MemberError> deactivate(UUID uuid);
+
+    Result<Member, MemberError> activate(UUID uuid);
 }

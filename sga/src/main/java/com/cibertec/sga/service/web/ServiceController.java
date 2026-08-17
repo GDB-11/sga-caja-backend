@@ -86,4 +86,12 @@ public class ServiceController {
         Result<Service, ServiceError> result = serviceService.deactivate(uuid);
         return ResultResponse.ok(result.map(dtoMapper::toResponse), request);
     }
+
+    @PatchMapping("/{uuid}/activate")
+    @PreAuthorize("hasRole('Administrator')")
+    @Operation(summary = "Reactivar un servicio")
+    public ResponseEntity<?> activate(@PathVariable UUID uuid, HttpServletRequest request) {
+        Result<Service, ServiceError> result = serviceService.activate(uuid);
+        return ResultResponse.ok(result.map(dtoMapper::toResponse), request);
+    }
 }

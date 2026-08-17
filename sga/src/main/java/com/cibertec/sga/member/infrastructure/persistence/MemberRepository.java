@@ -66,4 +66,12 @@ public class MemberRepository implements IMemberRepository {
         jpaRepository.save(entity);
         return findByUuid(uuid).orElseThrow();
     }
+
+    @Override
+    public Member activate(UUID uuid) {
+        MemberEntity entity = jpaRepository.findEntityByUuid(uuid).orElseThrow();
+        entity.setActive(true);
+        jpaRepository.save(entity);
+        return findByUuid(uuid).orElseThrow();
+    }
 }

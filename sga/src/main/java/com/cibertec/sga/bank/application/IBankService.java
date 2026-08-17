@@ -22,4 +22,6 @@ public interface IBankService {
     Result<Bank, BankError> update(UUID uuid, BankCommand command);
 
     Result<Bank, BankError> deactivate(UUID uuid);
+
+    Result<Bank, BankError> activate(UUID uuid);
 }

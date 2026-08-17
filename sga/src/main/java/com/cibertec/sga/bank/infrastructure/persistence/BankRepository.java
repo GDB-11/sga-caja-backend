@@ -60,4 +60,12 @@ public class BankRepository implements IBankRepository {
         jpaRepository.save(entity);
         return findByUuid(uuid).orElseThrow();
     }
+
+    @Override
+    public Bank activate(UUID uuid) {
+        BankEntity entity = jpaRepository.findEntityByUuid(uuid).orElseThrow();
+        entity.setActive(true);
+        jpaRepository.save(entity);
+        return findByUuid(uuid).orElseThrow();
+    }
 }

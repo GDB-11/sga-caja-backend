@@ -86,4 +86,12 @@ public class ProviderController {
         Result<Provider, ProviderError> result = providerService.deactivate(uuid);
         return ResultResponse.ok(result.map(dtoMapper::toResponse), request);
     }
+
+    @PatchMapping("/{uuid}/activate")
+    @PreAuthorize("hasRole('Administrator')")
+    @Operation(summary = "Reactivar un proveedor")
+    public ResponseEntity<?> activate(@PathVariable UUID uuid, HttpServletRequest request) {
+        Result<Provider, ProviderError> result = providerService.activate(uuid);
+        return ResultResponse.ok(result.map(dtoMapper::toResponse), request);
+    }
 }

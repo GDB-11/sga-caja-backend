@@ -31,4 +31,6 @@ public interface IMemberRepository {
     Member update(UUID uuid, Member member);
 
     Member deactivate(UUID uuid);
+
+    Member activate(UUID uuid);
 }

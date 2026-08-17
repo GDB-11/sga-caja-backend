@@ -86,4 +86,12 @@ public class StallController {
         Result<Stall, StallError> result = stallService.deactivate(uuid);
         return ResultResponse.ok(result.map(dtoMapper::toResponse), request);
     }
+
+    @PatchMapping("/{uuid}/activate")
+    @PreAuthorize("hasRole('Administrator')")
+    @Operation(summary = "Reactivar un puesto")
+    public ResponseEntity<?> activate(@PathVariable UUID uuid, HttpServletRequest request) {
+        Result<Stall, StallError> result = stallService.activate(uuid);
+        return ResultResponse.ok(result.map(dtoMapper::toResponse), request);
+    }
 }

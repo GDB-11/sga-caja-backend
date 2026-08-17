@@ -30,4 +30,6 @@ public interface IStallRepository {
     Stall update(UUID uuid, Stall stall);
 
     Stall deactivate(UUID uuid);
+
+    Stall activate(UUID uuid);
 }

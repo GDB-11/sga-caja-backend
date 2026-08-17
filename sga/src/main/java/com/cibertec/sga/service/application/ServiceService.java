@@ -79,6 +79,15 @@ public class ServiceService implements IServiceService {
         return Result.success(serviceRepository.deactivate(uuid));
     }
 
+    @Override
+    public Result<Service, ServiceError> activate(UUID uuid) {
+        if (serviceRepository.findByUuid(uuid).isEmpty()) {
+            return Result.failure(new ServiceError.NotFound(uuid.toString()));
+        }
+
+        return Result.success(serviceRepository.activate(uuid));
+    }
+
     private Result<Service, ServiceError> validateAndBuild(UUID uuid, ServiceCommand command) {
         boolean validCostConfiguration = command.consumptionBased()
             ? (command.unitCost() != null && command.cost() == null)

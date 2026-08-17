@@ -83,6 +83,15 @@ public class StallService implements IStallService {
         return Result.success(stallRepository.deactivate(uuid));
     }
 
+    @Override
+    public Result<Stall, StallError> activate(UUID uuid) {
+        if (stallRepository.findByUuid(uuid).isEmpty()) {
+            return Result.failure(new StallError.NotFound(uuid.toString()));
+        }
+
+        return Result.success(stallRepository.activate(uuid));
+    }
+
     private Result<Stall, StallError> validateAndBuild(UUID uuid, StallCommand command) {
         if (command.validityStartDate() != null && command.validityEndDate() != null
             && command.validityEndDate().isBefore(command.validityStartDate())) {

@@ -23,4 +23,6 @@ public interface IServiceService {
     Result<Service, ServiceError> update(UUID uuid, ServiceCommand command);
 
     Result<Service, ServiceError> deactivate(UUID uuid);
+
+    Result<Service, ServiceError> activate(UUID uuid);
 }

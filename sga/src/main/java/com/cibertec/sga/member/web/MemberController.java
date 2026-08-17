@@ -86,4 +86,12 @@ public class MemberController {
         Result<Member, MemberError> result = memberService.deactivate(uuid);
         return ResultResponse.ok(result.map(dtoMapper::toResponse), request);
     }
+
+    @PatchMapping("/{uuid}/activate")
+    @PreAuthorize("hasRole('Administrator')")
+    @Operation(summary = "Reactivar un socio")
+    public ResponseEntity<?> activate(@PathVariable UUID uuid, HttpServletRequest request) {
+        Result<Member, MemberError> result = memberService.activate(uuid);
+        return ResultResponse.ok(result.map(dtoMapper::toResponse), request);
+    }
 }

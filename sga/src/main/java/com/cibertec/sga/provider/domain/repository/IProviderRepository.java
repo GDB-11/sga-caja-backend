@@ -26,4 +26,6 @@ public interface IProviderRepository {
     Provider update(UUID uuid, Provider provider);
 
     Provider deactivate(UUID uuid);
+
+    Provider activate(UUID uuid);
 }

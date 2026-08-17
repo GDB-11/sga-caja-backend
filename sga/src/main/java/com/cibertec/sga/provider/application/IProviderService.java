@@ -22,4 +22,6 @@ public interface IProviderService {
     Result<Provider, ProviderError> update(UUID uuid, ProviderCommand command);
 
     Result<Provider, ProviderError> deactivate(UUID uuid);
+
+    Result<Provider, ProviderError> activate(UUID uuid);
 }

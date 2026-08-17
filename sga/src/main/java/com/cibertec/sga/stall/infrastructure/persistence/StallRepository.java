@@ -66,4 +66,12 @@ public class StallRepository implements IStallRepository {
         jpaRepository.save(entity);
         return findByUuid(uuid).orElseThrow();
     }
+
+    @Override
+    public Stall activate(UUID uuid) {
+        StallEntity entity = jpaRepository.findEntityByUuid(uuid).orElseThrow();
+        entity.setActive(true);
+        jpaRepository.save(entity);
+        return findByUuid(uuid).orElseThrow();
+    }
 }

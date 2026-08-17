@@ -142,6 +142,24 @@ class StallIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void activateExistingStallFlipsActive() throws Exception {
+        String uuid = createStall("P-011", null);
+        mockMvc.perform(patch(BASE_URL + "/{uuid}/deactivate", uuid).header("Authorization", authHeader))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(patch(BASE_URL + "/{uuid}/activate", uuid).header("Authorization", authHeader))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.active").value(true));
+    }
+
+    @Test
+    void activateNonExistentUuidReturnsNotFound() throws Exception {
+        mockMvc.perform(patch(BASE_URL + "/{uuid}/activate", UUID.randomUUID()).header("Authorization", authHeader))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.error").value("STALL_NOT_FOUND"));
+    }
+
+    @Test
     void updateExistingStallChangesFieldsAndAssignsMember() throws Exception {
         String uuid = createStall("P-007", null);
 
