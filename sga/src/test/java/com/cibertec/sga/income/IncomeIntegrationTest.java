@@ -33,6 +33,7 @@ class IncomeIntegrationTest extends AbstractIntegrationTest {
     private String authHeader;
     private String cashierAuthHeader;
     private String incomeCategoryUuid;
+    private String currencyUuid;
 
     @BeforeEach
     void loginAndFetchIncomeCategory() throws Exception {
@@ -52,18 +53,22 @@ class IncomeIntegrationTest extends AbstractIntegrationTest {
 
         MvcResult categories = mockMvc.perform(get("/api/income-categories").header("Authorization", authHeader)).andReturn();
         incomeCategoryUuid = objectMapper.readTree(categories.getResponse().getContentAsString()).get(0).get("uuid").asString();
+
+        MvcResult currencies = mockMvc.perform(get("/api/currencies").header("Authorization", authHeader)).andReturn();
+        currencyUuid = objectMapper.readTree(currencies.getResponse().getContentAsString()).get(0).get("uuid").asString();
     }
 
     @Test
     void createRegistersIncomeAndEmitsReceipt() throws Exception {
         MvcResult created = mockMvc.perform(
             post(BASE_URL).header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
-                {"depositorName": "Juan Perez", "incomeCategoryUuid": "%s", "concept": "Alquiler de local", "amount": 250.00}
-                """.formatted(incomeCategoryUuid))
+                {"depositorName": "Juan Perez", "incomeCategoryUuid": "%s", "currencyUuid": "%s", "concept": "Alquiler de local", "amount": 250.00}
+                """.formatted(incomeCategoryUuid, currencyUuid))
         )
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.depositorName").value("Juan Perez"))
             .andExpect(jsonPath("$.amount").value(250.00))
+            .andExpect(jsonPath("$.currency.uuid").value(currencyUuid))
             .andExpect(jsonPath("$.receipt.receiptTypeName").value("Income"))
             .andExpect(jsonPath("$.receipt.correlativeNumber").isNumber())
             .andReturn();
@@ -78,8 +83,8 @@ class IncomeIntegrationTest extends AbstractIntegrationTest {
     void createWithAdministratorRoleReturnsForbidden() throws Exception {
         mockMvc.perform(
             post(BASE_URL).header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
-                {"depositorName": "Juan Perez", "incomeCategoryUuid": "%s", "concept": "Donación", "amount": 100.00}
-                """.formatted(incomeCategoryUuid))
+                {"depositorName": "Juan Perez", "incomeCategoryUuid": "%s", "currencyUuid": "%s", "concept": "Donación", "amount": 100.00}
+                """.formatted(incomeCategoryUuid, currencyUuid))
         ).andExpect(status().isForbidden());
     }
 
@@ -87,19 +92,30 @@ class IncomeIntegrationTest extends AbstractIntegrationTest {
     void createWithUnknownIncomeCategoryReturnsBadRequest() throws Exception {
         mockMvc.perform(
             post(BASE_URL).header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
-                {"depositorName": "Juan Perez", "incomeCategoryUuid": "%s", "concept": "Donación", "amount": 100.00}
-                """.formatted(UUID.randomUUID()))
+                {"depositorName": "Juan Perez", "incomeCategoryUuid": "%s", "currencyUuid": "%s", "concept": "Donación", "amount": 100.00}
+                """.formatted(UUID.randomUUID(), currencyUuid))
         )
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.error").value("INCOME_CATEGORY_NOT_FOUND"));
     }
 
     @Test
+    void createWithUnknownCurrencyReturnsBadRequest() throws Exception {
+        mockMvc.perform(
+            post(BASE_URL).header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"depositorName": "Juan Perez", "incomeCategoryUuid": "%s", "currencyUuid": "%s", "concept": "Donación", "amount": 100.00}
+                """.formatted(incomeCategoryUuid, UUID.randomUUID()))
+        )
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("INCOME_CURRENCY_NOT_FOUND"));
+    }
+
+    @Test
     void createWithNonPositiveAmountReturnsBadRequest() throws Exception {
         mockMvc.perform(
             post(BASE_URL).header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
-                {"depositorName": "Juan Perez", "incomeCategoryUuid": "%s", "concept": "Donación", "amount": 0}
-                """.formatted(incomeCategoryUuid))
+                {"depositorName": "Juan Perez", "incomeCategoryUuid": "%s", "currencyUuid": "%s", "concept": "Donación", "amount": 0}
+                """.formatted(incomeCategoryUuid, currencyUuid))
         ).andExpect(status().isBadRequest());
     }
 
@@ -107,8 +123,8 @@ class IncomeIntegrationTest extends AbstractIntegrationTest {
     void listReturnsCreatedIncomes() throws Exception {
         mockMvc.perform(
             post(BASE_URL).header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
-                {"depositorName": "Ana Ruiz", "incomeCategoryUuid": "%s", "concept": "Donación anual", "amount": 300.00}
-                """.formatted(incomeCategoryUuid))
+                {"depositorName": "Ana Ruiz", "incomeCategoryUuid": "%s", "currencyUuid": "%s", "concept": "Donación anual", "amount": 300.00}
+                """.formatted(incomeCategoryUuid, currencyUuid))
         ).andExpect(status().isCreated());
 
         mockMvc.perform(get(BASE_URL).header("Authorization", cashierAuthHeader))
@@ -120,8 +136,8 @@ class IncomeIntegrationTest extends AbstractIntegrationTest {
     void listFiltersByDate() throws Exception {
         mockMvc.perform(
             post(BASE_URL).header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
-                {"depositorName": "Bruno Vidal", "incomeCategoryUuid": "%s", "concept": "Donación", "amount": 40.00}
-                """.formatted(incomeCategoryUuid))
+                {"depositorName": "Bruno Vidal", "incomeCategoryUuid": "%s", "currencyUuid": "%s", "concept": "Donación", "amount": 40.00}
+                """.formatted(incomeCategoryUuid, currencyUuid))
         ).andExpect(status().isCreated());
 
         mockMvc.perform(get(BASE_URL).param("date", LocalDate.now().toString()).header("Authorization", cashierAuthHeader))

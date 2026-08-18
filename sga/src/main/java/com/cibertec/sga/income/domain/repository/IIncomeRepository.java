@@ -1,5 +1,6 @@
 package com.cibertec.sga.income.domain.repository;
 
+import com.cibertec.sga.currency.domain.model.Currency;
 import com.cibertec.sga.income.domain.model.Income;
 import com.cibertec.sga.incomecategory.domain.model.IncomeCategory;
 import com.cibertec.sga.receipt.domain.model.Receipt;
@@ -20,7 +21,9 @@ public interface IIncomeRepository {
      * crea antes, vía {@code IReceiptRepository}, en la misma transacción de
      * {@code IncomeService}.
      */
-    Income create(Receipt receipt, String depositorName, IncomeCategory incomeCategory, String concept, BigDecimal amount);
+    Income create(
+        Receipt receipt, String depositorName, IncomeCategory incomeCategory, Currency currency, String concept, BigDecimal amount
+    );
 
     Optional<Income> findByUuid(UUID uuid);
 

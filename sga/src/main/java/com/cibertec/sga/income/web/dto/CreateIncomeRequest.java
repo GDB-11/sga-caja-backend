@@ -16,6 +16,9 @@ public record CreateIncomeRequest(
     @NotNull(message = "La categoría de ingreso es obligatoria")
     UUID incomeCategoryUuid,
 
+    @NotNull(message = "La moneda es obligatoria")
+    UUID currencyUuid,
+
     @NotBlank(message = "El concepto es obligatorio")
     String concept,
 

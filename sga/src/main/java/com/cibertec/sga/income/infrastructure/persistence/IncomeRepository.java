@@ -1,5 +1,6 @@
 package com.cibertec.sga.income.infrastructure.persistence;
 
+import com.cibertec.sga.currency.domain.model.Currency;
 import com.cibertec.sga.income.domain.model.Income;
 import com.cibertec.sga.income.domain.repository.IIncomeRepository;
 import com.cibertec.sga.incomecategory.domain.model.IncomeCategory;
@@ -24,8 +25,10 @@ public class IncomeRepository implements IIncomeRepository {
     }
 
     @Override
-    public Income create(Receipt receipt, String depositorName, IncomeCategory incomeCategory, String concept, BigDecimal amount) {
-        IncomeEntity saved = jpaRepository.save(mapper.toNewEntity(receipt, depositorName, incomeCategory, concept, amount));
+    public Income create(
+        Receipt receipt, String depositorName, IncomeCategory incomeCategory, Currency currency, String concept, BigDecimal amount
+    ) {
+        IncomeEntity saved = jpaRepository.save(mapper.toNewEntity(receipt, depositorName, incomeCategory, currency, concept, amount));
         return findByUuid(saved.getUuid()).orElseThrow();
     }
 

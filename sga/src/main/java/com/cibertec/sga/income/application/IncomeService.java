@@ -1,6 +1,8 @@
 package com.cibertec.sga.income.application;
 
 import com.cibertec.sga.common.result.Result;
+import com.cibertec.sga.currency.domain.model.Currency;
+import com.cibertec.sga.currency.domain.repository.ICurrencyRepository;
 import com.cibertec.sga.income.domain.error.IncomeError;
 import com.cibertec.sga.income.domain.model.Income;
 import com.cibertec.sga.income.domain.repository.IIncomeRepository;
@@ -24,17 +26,20 @@ public class IncomeService implements IIncomeService {
 
     private final IIncomeRepository incomeRepository;
     private final IIncomeCategoryRepository incomeCategoryRepository;
+    private final ICurrencyRepository currencyRepository;
     private final IReceiptRepository receiptRepository;
     private final IReceiptTypeRepository receiptTypeRepository;
 
     public IncomeService(
         IIncomeRepository incomeRepository,
         IIncomeCategoryRepository incomeCategoryRepository,
+        ICurrencyRepository currencyRepository,
         IReceiptRepository receiptRepository,
         IReceiptTypeRepository receiptTypeRepository
     ) {
         this.incomeRepository = incomeRepository;
         this.incomeCategoryRepository = incomeCategoryRepository;
+        this.currencyRepository = currencyRepository;
         this.receiptRepository = receiptRepository;
         this.receiptTypeRepository = receiptTypeRepository;
     }
@@ -48,10 +53,18 @@ public class IncomeService implements IIncomeService {
         }
         IncomeCategory incomeCategory = incomeCategoryOpt.get();
 
+        var currencyOpt = currencyRepository.findByUuid(command.currencyUuid());
+        if (currencyOpt.isEmpty()) {
+            return Result.failure(new IncomeError.CurrencyNotFound(command.currencyUuid().toString()));
+        }
+        Currency currency = currencyOpt.get();
+
         ReceiptType incomeType = receiptTypeRepository.findByName(RECEIPT_TYPE_INCOME).orElseThrow();
         Receipt receipt = receiptRepository.insert(Receipt.builder().receiptType(incomeType).amount(command.amount()).build());
 
-        Income income = incomeRepository.create(receipt, command.depositorName(), incomeCategory, command.concept(), command.amount());
+        Income income = incomeRepository.create(
+            receipt, command.depositorName(), incomeCategory, currency, command.concept(), command.amount()
+        );
         return Result.success(income);
     }
 

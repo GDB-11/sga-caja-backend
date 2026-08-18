@@ -9,6 +9,7 @@ public record IncomeResponse(
     ReceiptRef receipt,
     String depositorName,
     IncomeCategoryRef incomeCategory,
+    CurrencyRef currency,
     String concept,
     BigDecimal amount
 ) {
@@ -16,5 +17,8 @@ public record IncomeResponse(
     }
 
     public record IncomeCategoryRef(UUID uuid, String name) {
+    }
+
+    public record CurrencyRef(UUID uuid, String code, String name) {
     }
 }

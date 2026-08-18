@@ -43,6 +43,9 @@ public class IncomeEntity {
     @Column(name = "IncomeCategoryId", nullable = false)
     private Long incomeCategoryId;
 
+    @Column(name = "CurrencyId", nullable = false)
+    private Long currencyId;
+
     @Column(name = "Concept", nullable = false)
     private String concept;
 
@@ -66,6 +69,7 @@ public class IncomeEntity {
         this.receiptId = builder.receiptId;
         this.depositorName = builder.depositorName;
         this.incomeCategoryId = builder.incomeCategoryId;
+        this.currencyId = builder.currencyId;
         this.concept = builder.concept;
         this.amount = builder.amount;
     }
@@ -90,6 +94,10 @@ public class IncomeEntity {
         return incomeCategoryId;
     }
 
+    public Long getCurrencyId() {
+        return currencyId;
+    }
+
     public String getConcept() {
         return concept;
     }
@@ -112,6 +120,7 @@ public class IncomeEntity {
         private Long receiptId;
         private String depositorName;
         private Long incomeCategoryId;
+        private Long currencyId;
         private String concept;
         private BigDecimal amount;
 
@@ -137,6 +146,11 @@ public class IncomeEntity {
 
         public Builder incomeCategoryId(Long incomeCategoryId) {
             this.incomeCategoryId = incomeCategoryId;
+            return this;
+        }
+
+        public Builder currencyId(Long currencyId) {
+            this.currencyId = currencyId;
             return this;
         }
 

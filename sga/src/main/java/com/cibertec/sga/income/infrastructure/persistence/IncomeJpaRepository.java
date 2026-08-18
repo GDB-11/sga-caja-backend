@@ -19,11 +19,13 @@ public interface IncomeJpaRepository extends JpaRepository<IncomeEntity, Long> {
         SELECT i."Uuid" AS uuid, r."Uuid" AS receipt_uuid, r."CorrelativeNumber" AS receipt_correlative_number,
                r."IssueDate" AS receipt_issue_date, rt."Uuid" AS receipt_type_uuid, rt."Name" AS receipt_type_name,
                i."DepositorName" AS depositor_name, ic."Uuid" AS income_category_uuid, ic."Name" AS income_category_name,
+               c."Uuid" AS currency_uuid, c."Code" AS currency_code, c."Name" AS currency_name,
                i."Concept" AS concept, i."Amount" AS amount
         FROM "Income" i
         JOIN "Receipt" r ON r."Id" = i."ReceiptId"
         JOIN "ReceiptType" rt ON rt."Id" = r."ReceiptTypeId"
         JOIN "IncomeCategory" ic ON ic."Id" = i."IncomeCategoryId"
+        JOIN "Currency" c ON c."Id" = i."CurrencyId"
         """;
 
     @Query(nativeQuery = true, value = ROW_SELECT + " WHERE i.\"Uuid\" = :uuid")

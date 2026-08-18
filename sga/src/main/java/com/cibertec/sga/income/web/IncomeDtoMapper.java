@@ -21,12 +21,15 @@ public class IncomeDtoMapper {
             ),
             income.getDepositorName(),
             new IncomeResponse.IncomeCategoryRef(income.getIncomeCategory().getUuid(), income.getIncomeCategory().getName()),
+            new IncomeResponse.CurrencyRef(income.getCurrency().getUuid(), income.getCurrency().getCode(), income.getCurrency().getName()),
             income.getConcept(),
             income.getAmount()
         );
     }
 
     public CreateIncomeCommand toCommand(CreateIncomeRequest request) {
-        return new CreateIncomeCommand(request.depositorName(), request.incomeCategoryUuid(), request.concept(), request.amount());
+        return new CreateIncomeCommand(
+            request.depositorName(), request.incomeCategoryUuid(), request.currencyUuid(), request.concept(), request.amount()
+        );
     }
 }

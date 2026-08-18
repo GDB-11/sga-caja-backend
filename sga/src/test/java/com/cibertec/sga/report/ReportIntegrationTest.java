@@ -49,6 +49,7 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
     private String businessTypeUuid;
     private String bankUuid;
     private String incomeCategoryUuid;
+    private String currencyUuid;
     private String providerUuid;
     private String expenseReasonUuid;
 
@@ -80,7 +81,7 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
         String stallChargeTargetTypeUuid = findUuidByName(chargeTargetTypesJson, "Stall");
 
         MvcResult currencies = mockMvc.perform(get("/api/currencies").header("Authorization", authHeader)).andReturn();
-        String currencyUuid = objectMapper.readTree(currencies.getResponse().getContentAsString()).get(0).get("uuid").asString();
+        currencyUuid = objectMapper.readTree(currencies.getResponse().getContentAsString()).get(0).get("uuid").asString();
 
         memberServiceUuid = createFixedCostService("Cuota Socio Reporte Test", recurrenceTypeUuid, memberChargeTargetTypeUuid, currencyUuid, "50.00");
         stallServiceUuid = createFixedCostService("Mantenimiento Reporte Test", recurrenceTypeUuid, stallChargeTargetTypeUuid, currencyUuid, "30.00");
@@ -204,8 +205,8 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
 
         MvcResult incomeResult = mockMvc.perform(
             post("/api/incomes").header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
-                {"depositorName": "Carla Soto", "incomeCategoryUuid": "%s", "concept": "Donación", "amount": 25.00}
-                """.formatted(incomeCategoryUuid))
+                {"depositorName": "Carla Soto", "incomeCategoryUuid": "%s", "currencyUuid": "%s", "concept": "Donación", "amount": 25.00}
+                """.formatted(incomeCategoryUuid, currencyUuid))
         ).andExpect(status().isCreated()).andReturn();
         long incomeReceiptCorrelative =
             objectMapper.readTree(incomeResult.getResponse().getContentAsString()).get("receipt").get("correlativeNumber").asLong();

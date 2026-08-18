@@ -28,6 +28,12 @@ public interface IncomeRow {
 
     String getIncomeCategoryName();
 
+    UUID getCurrencyUuid();
+
+    String getCurrencyCode();
+
+    String getCurrencyName();
+
     String getConcept();
 
     BigDecimal getAmount();

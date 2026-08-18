@@ -1,5 +1,6 @@
 package com.cibertec.sga.income.domain.model;
 
+import com.cibertec.sga.currency.domain.model.Currency;
 import com.cibertec.sga.incomecategory.domain.model.IncomeCategory;
 import com.cibertec.sga.receipt.domain.model.Receipt;
 import java.math.BigDecimal;
@@ -15,6 +16,7 @@ public final class Income {
     private final Receipt receipt;
     private final String depositorName;
     private final IncomeCategory incomeCategory;
+    private final Currency currency;
     private final String concept;
     private final BigDecimal amount;
 
@@ -23,6 +25,7 @@ public final class Income {
         this.receipt = builder.receipt;
         this.depositorName = builder.depositorName;
         this.incomeCategory = builder.incomeCategory;
+        this.currency = builder.currency;
         this.concept = builder.concept;
         this.amount = builder.amount;
     }
@@ -43,6 +46,10 @@ public final class Income {
         return incomeCategory;
     }
 
+    public Currency getCurrency() {
+        return currency;
+    }
+
     public String getConcept() {
         return concept;
     }
@@ -60,6 +67,7 @@ public final class Income {
         private Receipt receipt;
         private String depositorName;
         private IncomeCategory incomeCategory;
+        private Currency currency;
         private String concept;
         private BigDecimal amount;
 
@@ -83,6 +91,11 @@ public final class Income {
             return this;
         }
 
+        public Builder currency(Currency currency) {
+            this.currency = currency;
+            return this;
+        }
+
         public Builder concept(String concept) {
             this.concept = concept;
             return this;
@@ -102,6 +115,9 @@ public final class Income {
             }
             if (incomeCategory == null) {
                 throw new IllegalArgumentException("La categoría del ingreso es obligatoria");
+            }
+            if (currency == null) {
+                throw new IllegalArgumentException("La moneda del ingreso es obligatoria");
             }
             if (concept == null || concept.isBlank()) {
                 throw new IllegalArgumentException("El concepto del ingreso es obligatorio");
