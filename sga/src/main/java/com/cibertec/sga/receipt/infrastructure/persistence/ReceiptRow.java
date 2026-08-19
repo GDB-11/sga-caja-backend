@@ -23,4 +23,10 @@ public interface ReceiptRow {
     BigDecimal getAmount();
 
     String getDescription();
+
+    UUID getCurrencyUuid();
+
+    String getCurrencyCode();
+
+    String getCurrencyName();
 }

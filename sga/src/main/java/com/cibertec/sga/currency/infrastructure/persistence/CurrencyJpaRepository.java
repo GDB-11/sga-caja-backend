@@ -14,4 +14,7 @@ public interface CurrencyJpaRepository extends JpaRepository<CurrencyEntity, Lon
 
     @Query(nativeQuery = true, value = "SELECT * FROM \"Currency\" WHERE \"Uuid\" = :uuid")
     Optional<CurrencyEntity> findByUuid(@Param("uuid") UUID uuid);
+
+    @Query(nativeQuery = true, value = "SELECT * FROM \"Currency\" WHERE \"Code\" = :code")
+    Optional<CurrencyEntity> findByCode(@Param("code") String code);
 }

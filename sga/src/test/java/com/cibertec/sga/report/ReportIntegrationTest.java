@@ -215,8 +215,8 @@ class ReportIntegrationTest extends AbstractIntegrationTest {
         MvcResult registeredExpense = mockMvc.perform(
             post("/api/expenses").header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"documentNumber": "REP-EXP-001", "providerUuid": "%s", "expenseDate": "2026-02-01", "amount": 80.00,
-                 "expenseReasonUuid": "%s"}
-                """.formatted(providerUuid, expenseReasonUuid))
+                 "expenseReasonUuid": "%s", "currencyUuid": "%s"}
+                """.formatted(providerUuid, expenseReasonUuid, currencyUuid))
         ).andExpect(status().isCreated()).andReturn();
         String expenseUuid = objectMapper.readTree(registeredExpense.getResponse().getContentAsString()).get("uuid").asString();
         mockMvc.perform(patch("/api/expenses/{uuid}/process", expenseUuid).header("Authorization", cashierAuthHeader))

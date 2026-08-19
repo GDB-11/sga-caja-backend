@@ -60,7 +60,9 @@ public class IncomeService implements IIncomeService {
         Currency currency = currencyOpt.get();
 
         ReceiptType incomeType = receiptTypeRepository.findByName(RECEIPT_TYPE_INCOME).orElseThrow();
-        Receipt receipt = receiptRepository.insert(Receipt.builder().receiptType(incomeType).amount(command.amount()).build());
+        Receipt receipt = receiptRepository.insert(
+            Receipt.builder().receiptType(incomeType).amount(command.amount()).currency(currency).build()
+        );
 
         Income income = incomeRepository.create(
             receipt, command.depositorName(), incomeCategory, currency, command.concept(), command.amount()

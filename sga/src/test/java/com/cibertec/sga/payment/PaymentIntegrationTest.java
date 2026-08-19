@@ -34,6 +34,7 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
     private String cashierAuthHeader;
     private String memberServiceUuid;
     private String stallServiceUuid;
+    private String memberServiceUuidSecondCurrency;
     private String businessTypeUuid;
     private String stage1Uuid;
 
@@ -66,7 +67,9 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
         String stallChargeTargetTypeUuid = findUuidByName(chargeTargetTypesJson, "Stall");
 
         MvcResult currencies = mockMvc.perform(get("/api/currencies").header("Authorization", authHeader)).andReturn();
-        String currencyUuid = objectMapper.readTree(currencies.getResponse().getContentAsString()).get(0).get("uuid").asString();
+        JsonNode currenciesJson = objectMapper.readTree(currencies.getResponse().getContentAsString());
+        String currencyUuid = currenciesJson.get(0).get("uuid").asString();
+        String secondCurrencyUuid = currenciesJson.get(1).get("uuid").asString();
 
         MvcResult service = mockMvc.perform(
             post("/api/services").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
@@ -83,6 +86,15 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
                 """.formatted(recurrenceTypeUuid, stallChargeTargetTypeUuid, currencyUuid))
         ).andExpect(status().isCreated()).andReturn();
         stallServiceUuid = objectMapper.readTree(stallService.getResponse().getContentAsString()).get("uuid").asString();
+
+        MvcResult secondCurrencyService = mockMvc.perform(
+            post("/api/services").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"name": "Cuota Socio Pago Test Otra Moneda", "recurrenceTypeUuid": "%s", "chargeTargetTypeUuid": "%s",
+                 "currencyUuid": "%s", "consumptionBased": false, "cost": 75.00}
+                """.formatted(recurrenceTypeUuid, memberChargeTargetTypeUuid, secondCurrencyUuid))
+        ).andExpect(status().isCreated()).andReturn();
+        memberServiceUuidSecondCurrency =
+            objectMapper.readTree(secondCurrencyService.getResponse().getContentAsString()).get("uuid").asString();
 
         MvcResult businessType = mockMvc.perform(
             post("/api/business-types").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
@@ -111,6 +123,12 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
     }
 
     private String createMemberAndReceivable(String code, String firstName, String lastName) throws Exception {
+        return createMemberAndReceivable(code, firstName, lastName, memberServiceUuid, "50.00");
+    }
+
+    private String createMemberAndReceivable(
+        String code, String firstName, String lastName, String serviceUuid, String amount
+    ) throws Exception {
         mockMvc.perform(
             post("/api/members").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"code": "%s", "firstName": "%s", "lastName": "%s", "stageUuid": "%s"}
@@ -120,9 +138,9 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
         MvcResult generated = mockMvc.perform(
             post("/api/account-receivables/generate-by-member")
                 .header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
-                {"serviceUuid": "%s", "periodStartDate": "2026-01-01", "periodEndDate": "2026-01-31", "amount": 50.00,
+                {"serviceUuid": "%s", "periodStartDate": "2026-01-01", "periodEndDate": "2026-01-31", "amount": %s,
                  "stageCodes": [1], "uniqueMembers": false}
-                """.formatted(memberServiceUuid))
+                """.formatted(serviceUuid, amount))
         ).andExpect(status().isCreated()).andReturn();
         // generate-by-member targets all active members in the given stages, so filter by full name
         // to isolate the receivable belonging to the member this test just created.
@@ -344,5 +362,28 @@ class PaymentIntegrationTest extends AbstractIntegrationTest {
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.createdBy.username").value("cashier"))
             .andExpect(jsonPath("$.createdBy.uuid").isNotEmpty());
+    }
+
+    @Test
+    void processPaymentWithMixedCurrencySelectionReturnsBadRequest() throws Exception {
+        String receivableFirstCurrency = createMemberAndReceivable("PAY-012", "Rosa", "Nunez");
+        String receivableSecondCurrency =
+            createMemberAndReceivable("PAY-013", "Sofia", "Leon", memberServiceUuidSecondCurrency, "75.00");
+
+        mockMvc.perform(
+            post(BASE_URL + "/compute-total").header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"accountReceivableUuids": ["%s", "%s"]}
+                """.formatted(receivableFirstCurrency, receivableSecondCurrency))
+        )
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("PAYMENT_MIXED_CURRENCY"));
+
+        mockMvc.perform(
+            post(BASE_URL).header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"accountReceivableUuids": ["%s", "%s"]}
+                """.formatted(receivableFirstCurrency, receivableSecondCurrency))
+        )
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("PAYMENT_MIXED_CURRENCY"));
     }
 }

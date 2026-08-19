@@ -41,6 +41,8 @@ class ExpenseIntegrationTest extends AbstractIntegrationTest {
     private String cashierAuthHeader;
     private String providerUuid;
     private String expenseReasonUuid;
+    private String currencyUuid;
+    private String currencyCode;
 
     @BeforeEach
     void loginAndCreateReferences() throws Exception {
@@ -67,14 +69,19 @@ class ExpenseIntegrationTest extends AbstractIntegrationTest {
 
         MvcResult reasons = mockMvc.perform(get("/api/expense-reasons").header("Authorization", authHeader)).andReturn();
         expenseReasonUuid = objectMapper.readTree(reasons.getResponse().getContentAsString()).get(0).get("uuid").asString();
+
+        MvcResult currencies = mockMvc.perform(get("/api/currencies").header("Authorization", authHeader)).andReturn();
+        JsonNode currency = objectMapper.readTree(currencies.getResponse().getContentAsString()).get(0);
+        currencyUuid = currency.get("uuid").asString();
+        currencyCode = currency.get("code").asString();
     }
 
     private String registerExpense(String documentNumber) throws Exception {
         MvcResult created = mockMvc.perform(
             post(BASE_URL).header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"documentNumber": "%s", "providerUuid": "%s", "expenseDate": "2026-02-01", "amount": 150.00,
-                 "associatedDocument": "OC-001", "expenseReasonUuid": "%s"}
-                """.formatted(documentNumber, providerUuid, expenseReasonUuid))
+                 "associatedDocument": "OC-001", "expenseReasonUuid": "%s", "currencyUuid": "%s"}
+                """.formatted(documentNumber, providerUuid, expenseReasonUuid, currencyUuid))
         ).andExpect(status().isCreated()).andReturn();
         return objectMapper.readTree(created.getResponse().getContentAsString()).get("uuid").asString();
     }
@@ -109,8 +116,8 @@ class ExpenseIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(
             post(BASE_URL).header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"documentNumber": "EXP-002", "providerUuid": "%s", "expenseDate": "2026-02-01", "amount": 150.00,
-                 "expenseReasonUuid": "%s"}
-                """.formatted(providerUuid, expenseReasonUuid))
+                 "expenseReasonUuid": "%s", "currencyUuid": "%s"}
+                """.formatted(providerUuid, expenseReasonUuid, currencyUuid))
         ).andExpect(status().isForbidden());
     }
 
@@ -119,11 +126,23 @@ class ExpenseIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(
             post(BASE_URL).header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
                 {"documentNumber": "EXP-003", "providerUuid": "%s", "expenseDate": "2026-02-01", "amount": 150.00,
-                 "expenseReasonUuid": "%s"}
-                """.formatted(UUID.randomUUID(), expenseReasonUuid))
+                 "expenseReasonUuid": "%s", "currencyUuid": "%s"}
+                """.formatted(UUID.randomUUID(), expenseReasonUuid, currencyUuid))
         )
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.error").value("EXPENSE_PROVIDER_NOT_FOUND"));
+    }
+
+    @Test
+    void registerWithUnknownCurrencyReturnsBadRequest() throws Exception {
+        mockMvc.perform(
+            post(BASE_URL).header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"documentNumber": "EXP-003B", "providerUuid": "%s", "expenseDate": "2026-02-01", "amount": 150.00,
+                 "expenseReasonUuid": "%s", "currencyUuid": "%s"}
+                """.formatted(providerUuid, expenseReasonUuid, UUID.randomUUID()))
+        )
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("EXPENSE_CURRENCY_NOT_FOUND"));
     }
 
     @Test
@@ -172,8 +191,8 @@ class ExpenseIntegrationTest extends AbstractIntegrationTest {
         String reasonName = objectMapper.readTree(reasons.getResponse().getContentAsString()).get(0).get("name").asString();
 
         byte[] xlsx = buildBulkExpenseWorkbook(new String[][] {
-            {"BULK-001", "Distribuidora Expense Test", "2026-02-10", "80.00", "OC-100", reasonName},
-            {"BULK-002", "Distribuidora Expense Test", "2026-02-11", "120.50", "", reasonName}
+            {"BULK-001", "Distribuidora Expense Test", "2026-02-10", "80.00", "OC-100", reasonName, currencyCode},
+            {"BULK-002", "Distribuidora Expense Test", "2026-02-11", "120.50", "", reasonName, currencyCode}
         });
         MockMultipartFile file = new MockMultipartFile("file", "egresos.xlsx", "application/vnd.ms-excel", xlsx);
 
@@ -197,9 +216,28 @@ class ExpenseIntegrationTest extends AbstractIntegrationTest {
         String reasonName = objectMapper.readTree(reasons.getResponse().getContentAsString()).get(0).get("name").asString();
 
         byte[] xlsx = buildBulkExpenseWorkbook(new String[][] {
-            {"BULK-003", "Proveedor Inexistente SAC", "2026-02-12", "50.00", "", reasonName}
+            {"BULK-003", "Proveedor Inexistente SAC", "2026-02-12", "50.00", "", reasonName, currencyCode}
         });
         MockMultipartFile file = new MockMultipartFile("file", "egresos-malos.xlsx", "application/vnd.ms-excel", xlsx);
+
+        mockMvc.perform(multipart(BASE_URL + "/bulk-upload").file(file).header("Authorization", cashierAuthHeader))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("EXPENSE_BULK_VALIDATION_FAILED"));
+
+        mockMvc.perform(get(BASE_URL).param("year", "2026").param("month", "2").header("Authorization", cashierAuthHeader))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(0));
+    }
+
+    @Test
+    void bulkUploadWithUnknownCurrencyCodeReturnsBadRequestAndCreatesNoExpenses() throws Exception {
+        MvcResult reasons = mockMvc.perform(get("/api/expense-reasons").header("Authorization", authHeader)).andReturn();
+        String reasonName = objectMapper.readTree(reasons.getResponse().getContentAsString()).get(0).get("name").asString();
+
+        byte[] xlsx = buildBulkExpenseWorkbook(new String[][] {
+            {"BULK-004", "Distribuidora Expense Test", "2026-02-13", "60.00", "", reasonName, "ZZZ"}
+        });
+        MockMultipartFile file = new MockMultipartFile("file", "egresos-moneda-mala.xlsx", "application/vnd.ms-excel", xlsx);
 
         mockMvc.perform(multipart(BASE_URL + "/bulk-upload").file(file).header("Authorization", cashierAuthHeader))
             .andExpect(status().isBadRequest())
@@ -214,7 +252,7 @@ class ExpenseIntegrationTest extends AbstractIntegrationTest {
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Egresos");
             Row header = sheet.createRow(0);
-            String[] headers = {"DocumentNumber", "ProviderName", "ExpenseDate", "Amount", "AssociatedDocument", "ExpenseReason"};
+            String[] headers = {"DocumentNumber", "ProviderName", "ExpenseDate", "Amount", "AssociatedDocument", "ExpenseReason", "Moneda"};
             for (int col = 0; col < headers.length; col++) {
                 header.createCell(col).setCellValue(headers[col]);
             }
@@ -227,6 +265,7 @@ class ExpenseIntegrationTest extends AbstractIntegrationTest {
                 row.createCell(3).setCellValue(Double.parseDouble(values[3]));
                 row.createCell(4).setCellValue(values[4]);
                 row.createCell(5).setCellValue(values[5]);
+                row.createCell(6).setCellValue(values[6]);
             }
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             workbook.write(out);

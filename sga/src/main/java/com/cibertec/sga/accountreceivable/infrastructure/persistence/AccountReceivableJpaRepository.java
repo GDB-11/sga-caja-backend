@@ -21,18 +21,20 @@ public interface AccountReceivableJpaRepository extends JpaRepository<AccountRec
                sv."Uuid" AS service_uuid, sv."Name" AS service_name,
                rt."Uuid" AS recurrence_type_uuid, rt."Name" AS recurrence_type_name,
                ctt."Uuid" AS charge_target_type_uuid, ctt."Name" AS charge_target_type_name,
-               cur."Uuid" AS currency_uuid, cur."Code" AS currency_code, cur."Name" AS currency_name,
+               sv_cur."Uuid" AS service_currency_uuid, sv_cur."Code" AS service_currency_code, sv_cur."Name" AS service_currency_name,
                sv."IsConsumptionBased" AS service_is_consumption_based, sv."Cost" AS service_cost,
                sv."UnitCost" AS service_unit_cost, sv."IsActive" AS service_is_active,
                mem."Uuid" AS member_uuid, CONCAT(mem."FirstName", ' ', mem."LastName") AS member_full_name,
                st."Uuid" AS stall_uuid, st."Number" AS stall_number,
                ar."PeriodStartDate" AS period_start_date, ar."PeriodEndDate" AS period_end_date,
-               ar."Amount" AS amount, ars."Uuid" AS status_uuid, ars."Name" AS status_name
+               ar."Amount" AS amount, ars."Uuid" AS status_uuid, ars."Name" AS status_name,
+               ar_cur."Uuid" AS currency_uuid, ar_cur."Code" AS currency_code, ar_cur."Name" AS currency_name
         FROM "AccountReceivable" ar
         JOIN "Service" sv ON sv."Id" = ar."ServiceId"
         JOIN "RecurrenceType" rt ON rt."Id" = sv."RecurrenceTypeId"
         JOIN "ChargeTargetType" ctt ON ctt."Id" = sv."ChargeTargetTypeId"
-        JOIN "Currency" cur ON cur."Id" = sv."CurrencyId"
+        JOIN "Currency" sv_cur ON sv_cur."Id" = sv."CurrencyId"
+        JOIN "Currency" ar_cur ON ar_cur."Id" = ar."CurrencyId"
         LEFT JOIN "Member" mem ON mem."Id" = ar."MemberId"
         LEFT JOIN "Stall" st ON st."Id" = ar."StallId"
         JOIN "AccountReceivableStatus" ars ON ars."Id" = ar."AccountReceivableStatusId"
@@ -82,13 +84,14 @@ public interface AccountReceivableJpaRepository extends JpaRepository<AccountRec
                sv."Uuid" AS service_uuid, sv."Name" AS service_name,
                rt."Uuid" AS recurrence_type_uuid, rt."Name" AS recurrence_type_name,
                ctt."Uuid" AS charge_target_type_uuid, ctt."Name" AS charge_target_type_name,
-               cur."Uuid" AS currency_uuid, cur."Code" AS currency_code, cur."Name" AS currency_name,
+               sv_cur."Uuid" AS service_currency_uuid, sv_cur."Code" AS service_currency_code, sv_cur."Name" AS service_currency_name,
                sv."IsConsumptionBased" AS service_is_consumption_based, sv."Cost" AS service_cost,
                sv."UnitCost" AS service_unit_cost, sv."IsActive" AS service_is_active,
                mem."Uuid" AS member_uuid, CONCAT(mem."FirstName", ' ', mem."LastName") AS member_full_name,
                st."Uuid" AS stall_uuid, st."Number" AS stall_number,
                ar."PeriodStartDate" AS period_start_date, ar."PeriodEndDate" AS period_end_date,
                ar."Amount" AS amount, ars."Uuid" AS status_uuid, ars."Name" AS status_name,
+               ar_cur."Uuid" AS currency_uuid, ar_cur."Code" AS currency_code, ar_cur."Name" AS currency_name,
                CASE WHEN pd."Id" IS NOT NULL THEN 'Payment' WHEN bx."Id" IS NOT NULL THEN 'BankExchange' END AS settlement_method,
                COALESCE(p."PaymentDate", bx."DepositDate") AS settled_date,
                COALESCE(pr."CorrelativeNumber", bxr."CorrelativeNumber") AS receipt_correlative
@@ -96,7 +99,8 @@ public interface AccountReceivableJpaRepository extends JpaRepository<AccountRec
         JOIN "Service" sv ON sv."Id" = ar."ServiceId"
         JOIN "RecurrenceType" rt ON rt."Id" = sv."RecurrenceTypeId"
         JOIN "ChargeTargetType" ctt ON ctt."Id" = sv."ChargeTargetTypeId"
-        JOIN "Currency" cur ON cur."Id" = sv."CurrencyId"
+        JOIN "Currency" sv_cur ON sv_cur."Id" = sv."CurrencyId"
+        JOIN "Currency" ar_cur ON ar_cur."Id" = ar."CurrencyId"
         LEFT JOIN "Member" mem ON mem."Id" = ar."MemberId"
         LEFT JOIN "Stall" st ON st."Id" = ar."StallId"
         JOIN "AccountReceivableStatus" ars ON ars."Id" = ar."AccountReceivableStatusId"

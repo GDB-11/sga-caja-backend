@@ -44,7 +44,7 @@ class IncomeCategoryIntegrationTest extends AbstractIntegrationTest {
     void listReturnsSeededIncomeCategories() throws Exception {
         mockMvc.perform(get("/api/income-categories").header("Authorization", authHeader))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(3));
+            .andExpect(jsonPath("$.length()").value(7));
     }
 
     @Test

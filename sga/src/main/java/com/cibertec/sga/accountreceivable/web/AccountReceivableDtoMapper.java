@@ -39,6 +39,10 @@ public class AccountReceivableDtoMapper {
             accountReceivable.getAmount(),
             new AccountReceivableResponse.StatusRef(
                 accountReceivable.getStatus().getUuid(), accountReceivable.getStatus().getName()
+            ),
+            new AccountReceivableResponse.CurrencyRef(
+                accountReceivable.getCurrency().getUuid(), accountReceivable.getCurrency().getCode(),
+                accountReceivable.getCurrency().getName()
             )
         );
     }

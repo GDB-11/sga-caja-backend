@@ -9,8 +9,8 @@ import java.util.List;
  */
 public sealed interface ExpenseError extends DomainError
     permits ExpenseError.NotFound, ExpenseError.ProviderNotFound, ExpenseError.ProviderInactive,
-    ExpenseError.ExpenseReasonNotFound, ExpenseError.NotPending, ExpenseError.InvalidBulkFile,
-    ExpenseError.BulkValidationFailed {
+    ExpenseError.ExpenseReasonNotFound, ExpenseError.CurrencyNotFound, ExpenseError.NotPending,
+    ExpenseError.InvalidBulkFile, ExpenseError.BulkValidationFailed {
 
     record NotFound(String uuid) implements ExpenseError {
         @Override
@@ -72,6 +72,23 @@ public sealed interface ExpenseError extends DomainError
         @Override
         public String message() {
             return "Motivo de egreso no encontrado: " + uuid;
+        }
+
+        @Override
+        public ErrorType type() {
+            return ErrorType.VALIDATION;
+        }
+    }
+
+    record CurrencyNotFound(String uuid) implements ExpenseError {
+        @Override
+        public String code() {
+            return "EXPENSE_CURRENCY_NOT_FOUND";
+        }
+
+        @Override
+        public String message() {
+            return "Moneda no encontrada: " + uuid;
         }
 
         @Override

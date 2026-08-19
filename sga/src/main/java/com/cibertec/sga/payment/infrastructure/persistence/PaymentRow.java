@@ -33,4 +33,10 @@ public interface PaymentRow {
     UUID getCreatedByUuid();
 
     String getCreatedByUsername();
+
+    UUID getCurrencyUuid();
+
+    String getCurrencyCode();
+
+    String getCurrencyName();
 }

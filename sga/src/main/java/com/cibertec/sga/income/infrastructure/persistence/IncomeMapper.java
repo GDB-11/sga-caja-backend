@@ -51,6 +51,11 @@ public class IncomeMapper {
     }
 
     public Income toDomain(IncomeRow row) {
+        Currency currency = Currency.builder()
+            .uuid(row.getCurrencyUuid())
+            .code(row.getCurrencyCode())
+            .name(row.getCurrencyName())
+            .build();
         ReceiptType receiptType = ReceiptType.builder().uuid(row.getReceiptTypeUuid()).name(row.getReceiptTypeName()).build();
         Receipt receipt = Receipt.builder()
             .uuid(row.getReceiptUuid())
@@ -58,15 +63,11 @@ public class IncomeMapper {
             .correlativeNumber(row.getReceiptCorrelativeNumber())
             .issueDate(row.getReceiptIssueDate())
             .amount(row.getAmount())
+            .currency(currency)
             .build();
         IncomeCategory incomeCategory = IncomeCategory.builder()
             .uuid(row.getIncomeCategoryUuid())
             .name(row.getIncomeCategoryName())
-            .build();
-        Currency currency = Currency.builder()
-            .uuid(row.getCurrencyUuid())
-            .code(row.getCurrencyCode())
-            .name(row.getCurrencyName())
             .build();
 
         return Income.builder()

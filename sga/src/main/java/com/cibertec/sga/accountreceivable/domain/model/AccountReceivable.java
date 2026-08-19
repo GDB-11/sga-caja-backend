@@ -1,6 +1,7 @@
 package com.cibertec.sga.accountreceivable.domain.model;
 
 import com.cibertec.sga.accountreceivablestatus.domain.model.AccountReceivableStatus;
+import com.cibertec.sga.currency.domain.model.Currency;
 import com.cibertec.sga.service.domain.model.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -20,6 +21,7 @@ public final class AccountReceivable {
     private final LocalDate periodEndDate;
     private final BigDecimal amount;
     private final AccountReceivableStatus status;
+    private final Currency currency;
 
     private AccountReceivable(Builder builder) {
         this.uuid = builder.uuid;
@@ -30,6 +32,7 @@ public final class AccountReceivable {
         this.periodEndDate = builder.periodEndDate;
         this.amount = builder.amount;
         this.status = builder.status;
+        this.currency = builder.currency;
     }
 
     public UUID getUuid() {
@@ -64,6 +67,10 @@ public final class AccountReceivable {
         return status;
     }
 
+    public Currency getCurrency() {
+        return currency;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -77,6 +84,7 @@ public final class AccountReceivable {
         private LocalDate periodEndDate;
         private BigDecimal amount;
         private AccountReceivableStatus status;
+        private Currency currency;
 
         public Builder uuid(UUID uuid) {
             this.uuid = uuid;
@@ -118,6 +126,11 @@ public final class AccountReceivable {
             return this;
         }
 
+        public Builder currency(Currency currency) {
+            this.currency = currency;
+            return this;
+        }
+
         public AccountReceivable build() {
             if (service == null) {
                 throw new IllegalArgumentException("El servicio de la cuenta por cobrar es obligatorio");
@@ -136,6 +149,9 @@ public final class AccountReceivable {
             }
             if (status == null) {
                 throw new IllegalArgumentException("El estado de la cuenta por cobrar es obligatorio");
+            }
+            if (currency == null) {
+                throw new IllegalArgumentException("La moneda de la cuenta por cobrar es obligatoria");
             }
             return new AccountReceivable(this);
         }

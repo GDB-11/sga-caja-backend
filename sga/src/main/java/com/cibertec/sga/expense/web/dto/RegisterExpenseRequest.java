@@ -27,6 +27,9 @@ public record RegisterExpenseRequest(
     String associatedDocument,
 
     @NotNull(message = "El motivo del egreso es obligatorio")
-    UUID expenseReasonUuid
+    UUID expenseReasonUuid,
+
+    @NotNull(message = "La moneda es obligatoria")
+    UUID currencyUuid
 ) {
 }

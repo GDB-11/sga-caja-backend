@@ -179,6 +179,7 @@ public class AccountReceivableService implements IAccountReceivableService {
             .periodEndDate(periodEndDate)
             .amount(amount)
             .status(status)
+            .currency(service.getCurrency())
             .build();
     }
 
@@ -193,6 +194,7 @@ public class AccountReceivableService implements IAccountReceivableService {
             .periodEndDate(periodEndDate)
             .amount(amount)
             .status(status)
+            .currency(service.getCurrency())
             .build();
     }
 

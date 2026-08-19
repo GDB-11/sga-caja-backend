@@ -5,6 +5,7 @@ import com.cibertec.sga.accountreceivable.domain.repository.IAccountReceivableRe
 import com.cibertec.sga.accountreceivablestatus.domain.model.AccountReceivableStatus;
 import com.cibertec.sga.accountreceivablestatus.domain.repository.IAccountReceivableStatusRepository;
 import com.cibertec.sga.common.result.Result;
+import com.cibertec.sga.currency.domain.model.Currency;
 import com.cibertec.sga.payment.domain.error.PaymentError;
 import com.cibertec.sga.payment.domain.model.Payment;
 import com.cibertec.sga.payment.domain.model.PaymentDetailRef;
@@ -57,7 +58,7 @@ public class PaymentService implements IPaymentService {
         }
         List<AccountReceivable> accountReceivables = selection.getValue();
         BigDecimal total = accountReceivables.stream().map(AccountReceivable::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
-        return Result.success(new PaymentTotal(accountReceivables, total));
+        return Result.success(new PaymentTotal(accountReceivables, total, accountReceivables.get(0).getCurrency()));
     }
 
     @Override
@@ -69,14 +70,17 @@ public class PaymentService implements IPaymentService {
         }
         List<AccountReceivable> accountReceivables = selection.getValue();
         BigDecimal total = accountReceivables.stream().map(AccountReceivable::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        Currency currency = accountReceivables.get(0).getCurrency();
 
         ReceiptType incomeType = receiptTypeRepository.findByName(RECEIPT_TYPE_INCOME).orElseThrow();
-        Receipt receipt = receiptRepository.insert(Receipt.builder().receiptType(incomeType).amount(total).build());
+        Receipt receipt = receiptRepository.insert(
+            Receipt.builder().receiptType(incomeType).amount(total).currency(currency).build()
+        );
 
         List<PaymentDetailRef> details = accountReceivables.stream()
             .map(ar -> new PaymentDetailRef(ar.getUuid(), ar.getAmount()))
             .toList();
-        Payment payment = paymentRepository.create(receipt, total, details);
+        Payment payment = paymentRepository.create(receipt, total, currency, details);
 
         AccountReceivableStatus paidStatus = accountReceivableStatusRepository.findByName(STATUS_PAID).orElseThrow();
         for (AccountReceivable accountReceivable : accountReceivables) {
@@ -126,6 +130,14 @@ public class PaymentService implements IPaymentService {
             }
             accountReceivables.add(accountReceivable);
         }
+
+        UUID firstCurrencyUuid = accountReceivables.get(0).getCurrency().getUuid();
+        boolean mixedCurrency = accountReceivables.stream()
+            .anyMatch(ar -> !ar.getCurrency().getUuid().equals(firstCurrencyUuid));
+        if (mixedCurrency) {
+            return Result.failure(new PaymentError.MixedCurrency());
+        }
+
         return Result.success(accountReceivables);
     }
 }

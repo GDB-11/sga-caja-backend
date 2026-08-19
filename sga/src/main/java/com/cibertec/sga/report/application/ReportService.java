@@ -178,36 +178,54 @@ public class ReportService implements IReportService {
 
         int rowIndex = 2;
         if (includeDetail) {
-            ExcelReportWriter.writeHeaderRow(sheet, rowIndex++, headerStyle, "Tipo", "Correlativo", "Fecha", "Monto");
+            ExcelReportWriter.writeHeaderRow(sheet, rowIndex++, headerStyle, "Tipo", "Correlativo", "Fecha", "Monto", "Moneda");
             for (Receipt receipt : receipts) {
                 Row row = sheet.createRow(rowIndex++);
                 ExcelReportWriter.setCell(row, 0, receipt.getReceiptType().getName());
                 ExcelReportWriter.setCell(row, 1, receipt.getCorrelativeNumber());
                 ExcelReportWriter.setCell(row, 2, receipt.getIssueDate(), dateStyle);
                 ExcelReportWriter.setCell(row, 3, receipt.getAmount(), currencyStyle);
+                ExcelReportWriter.setCell(row, 4, receipt.getCurrency().getCode());
             }
             rowIndex++;
         }
 
-        Map<String, BigDecimal> totalsByType = new LinkedHashMap<>();
-        BigDecimal grandTotal = BigDecimal.ZERO;
+        Map<String, Map<String, BigDecimal>> totalsByTypeAndCurrency = new LinkedHashMap<>();
+        Map<String, BigDecimal> grandTotalsByCurrency = new LinkedHashMap<>();
         for (Receipt receipt : receipts) {
-            totalsByType.merge(receipt.getReceiptType().getName(), receipt.getAmount(), BigDecimal::add);
-            grandTotal = grandTotal.add(receipt.getAmount());
+            String currencyCode = receipt.getCurrency().getCode();
+            totalsByTypeAndCurrency
+                .computeIfAbsent(receipt.getReceiptType().getName(), key -> new LinkedHashMap<>())
+                .merge(currencyCode, receipt.getAmount(), BigDecimal::add);
+            grandTotalsByCurrency.merge(currencyCode, receipt.getAmount(), BigDecimal::add);
         }
 
-        ExcelReportWriter.writeHeaderRow(sheet, rowIndex++, headerStyle, "Tipo", "Total");
-        for (Map.Entry<String, BigDecimal> entry : totalsByType.entrySet()) {
-            Row row = sheet.createRow(rowIndex++);
-            ExcelReportWriter.setCell(row, 0, entry.getKey());
-            ExcelReportWriter.setCell(row, 1, entry.getValue(), currencyStyle);
+        ExcelReportWriter.writeHeaderRow(sheet, rowIndex++, headerStyle, "Tipo", "Total", "Moneda");
+        for (Map.Entry<String, Map<String, BigDecimal>> typeEntry : totalsByTypeAndCurrency.entrySet()) {
+            for (Map.Entry<String, BigDecimal> currencyEntry : typeEntry.getValue().entrySet()) {
+                Row row = sheet.createRow(rowIndex++);
+                ExcelReportWriter.setCell(row, 0, typeEntry.getKey());
+                ExcelReportWriter.setCell(row, 1, currencyEntry.getValue(), currencyStyle);
+                ExcelReportWriter.setCell(row, 2, currencyEntry.getKey());
+            }
         }
-        Row totalRow = sheet.createRow(rowIndex);
-        ExcelReportWriter.setCell(totalRow, 0, "TOTAL GENERAL");
-        totalRow.getCell(0).setCellStyle(totalStyle);
-        ExcelReportWriter.setCell(totalRow, 1, grandTotal, totalStyle);
 
-        ExcelReportWriter.autoSizeColumns(sheet, 4);
+        if (grandTotalsByCurrency.isEmpty()) {
+            Row totalRow = sheet.createRow(rowIndex);
+            ExcelReportWriter.setCell(totalRow, 0, "TOTAL GENERAL");
+            totalRow.getCell(0).setCellStyle(totalStyle);
+            ExcelReportWriter.setCell(totalRow, 1, BigDecimal.ZERO, totalStyle);
+        } else {
+            for (Map.Entry<String, BigDecimal> entry : grandTotalsByCurrency.entrySet()) {
+                Row totalRow = sheet.createRow(rowIndex++);
+                ExcelReportWriter.setCell(totalRow, 0, "TOTAL GENERAL");
+                totalRow.getCell(0).setCellStyle(totalStyle);
+                ExcelReportWriter.setCell(totalRow, 1, entry.getValue(), totalStyle);
+                ExcelReportWriter.setCell(totalRow, 2, entry.getKey());
+            }
+        }
+
+        ExcelReportWriter.autoSizeColumns(sheet, 5);
         return ExcelReportWriter.toBytes(workbook);
     }
 
@@ -228,10 +246,10 @@ public class ReportService implements IReportService {
         ExcelReportWriter.writeHeaderRow(
             sheet, rowIndex++, headerStyle,
             targetLabel, "Servicio", "Período inicio", "Período fin", "Monto", "Estado",
-            "Forma de liquidación", "Fecha de liquidación", "Comprobante"
+            "Forma de liquidación", "Fecha de liquidación", "Comprobante", "Moneda"
         );
 
-        BigDecimal total = BigDecimal.ZERO;
+        Map<String, BigDecimal> totalsByCurrency = new LinkedHashMap<>();
         for (AccountReceivableMovement movement : movements) {
             AccountReceivable accountReceivable = movement.accountReceivable();
             Row row = sheet.createRow(rowIndex++);
@@ -246,15 +264,26 @@ public class ReportService implements IReportService {
             ExcelReportWriter.setCell(row, 6, movement.settlementMethod());
             ExcelReportWriter.setCell(row, 7, movement.settledDate(), dateStyle);
             ExcelReportWriter.setCell(row, 8, movement.receiptCorrelative());
-            total = total.add(accountReceivable.getAmount());
+            ExcelReportWriter.setCell(row, 9, accountReceivable.getCurrency().getCode());
+            totalsByCurrency.merge(accountReceivable.getCurrency().getCode(), accountReceivable.getAmount(), BigDecimal::add);
         }
 
-        Row totalRow = sheet.createRow(rowIndex);
-        ExcelReportWriter.setCell(totalRow, 3, "TOTAL");
-        totalRow.getCell(3).setCellStyle(totalStyle);
-        ExcelReportWriter.setCell(totalRow, 4, total, totalStyle);
+        if (totalsByCurrency.isEmpty()) {
+            Row totalRow = sheet.createRow(rowIndex);
+            ExcelReportWriter.setCell(totalRow, 3, "TOTAL");
+            totalRow.getCell(3).setCellStyle(totalStyle);
+            ExcelReportWriter.setCell(totalRow, 4, BigDecimal.ZERO, totalStyle);
+        } else {
+            for (Map.Entry<String, BigDecimal> entry : totalsByCurrency.entrySet()) {
+                Row totalRow = sheet.createRow(rowIndex++);
+                ExcelReportWriter.setCell(totalRow, 3, "TOTAL");
+                totalRow.getCell(3).setCellStyle(totalStyle);
+                ExcelReportWriter.setCell(totalRow, 4, entry.getValue(), totalStyle);
+                ExcelReportWriter.setCell(totalRow, 9, entry.getKey());
+            }
+        }
 
-        ExcelReportWriter.autoSizeColumns(sheet, 9);
+        ExcelReportWriter.autoSizeColumns(sheet, 10);
         return ExcelReportWriter.toBytes(workbook);
     }
 
@@ -272,10 +301,10 @@ public class ReportService implements IReportService {
         int rowIndex = 2;
         ExcelReportWriter.writeHeaderRow(
             sheet, rowIndex++, headerStyle,
-            "N° Documento", "Proveedor", "Fecha", "Monto", "Documento asociado", "Motivo", "Estado", "Comprobante"
+            "N° Documento", "Proveedor", "Fecha", "Monto", "Documento asociado", "Motivo", "Estado", "Comprobante", "Moneda"
         );
 
-        BigDecimal total = BigDecimal.ZERO;
+        Map<String, BigDecimal> totalsByCurrency = new LinkedHashMap<>();
         for (Expense expense : expenses) {
             Row row = sheet.createRow(rowIndex++);
             ExcelReportWriter.setCell(row, 0, expense.getDocumentNumber());
@@ -286,15 +315,26 @@ public class ReportService implements IReportService {
             ExcelReportWriter.setCell(row, 5, expense.getExpenseReason().getName());
             ExcelReportWriter.setCell(row, 6, expense.getStatus().getName());
             ExcelReportWriter.setCell(row, 7, expense.getReceipt() == null ? null : expense.getReceipt().getCorrelativeNumber());
-            total = total.add(expense.getAmount());
+            ExcelReportWriter.setCell(row, 8, expense.getCurrency().getCode());
+            totalsByCurrency.merge(expense.getCurrency().getCode(), expense.getAmount(), BigDecimal::add);
         }
 
-        Row totalRow = sheet.createRow(rowIndex);
-        ExcelReportWriter.setCell(totalRow, 2, "TOTAL");
-        totalRow.getCell(2).setCellStyle(totalStyle);
-        ExcelReportWriter.setCell(totalRow, 3, total, totalStyle);
+        if (totalsByCurrency.isEmpty()) {
+            Row totalRow = sheet.createRow(rowIndex);
+            ExcelReportWriter.setCell(totalRow, 2, "TOTAL");
+            totalRow.getCell(2).setCellStyle(totalStyle);
+            ExcelReportWriter.setCell(totalRow, 3, BigDecimal.ZERO, totalStyle);
+        } else {
+            for (Map.Entry<String, BigDecimal> entry : totalsByCurrency.entrySet()) {
+                Row totalRow = sheet.createRow(rowIndex++);
+                ExcelReportWriter.setCell(totalRow, 2, "TOTAL");
+                totalRow.getCell(2).setCellStyle(totalStyle);
+                ExcelReportWriter.setCell(totalRow, 3, entry.getValue(), totalStyle);
+                ExcelReportWriter.setCell(totalRow, 8, entry.getKey());
+            }
+        }
 
-        ExcelReportWriter.autoSizeColumns(sheet, 8);
+        ExcelReportWriter.autoSizeColumns(sheet, 9);
         return ExcelReportWriter.toBytes(workbook);
     }
 
@@ -311,10 +351,10 @@ public class ReportService implements IReportService {
 
         int rowIndex = 2;
         ExcelReportWriter.writeHeaderRow(
-            sheet, rowIndex++, headerStyle, "Banco", "Fecha de depósito", "Monto", "Socio/Puesto", "Comprobante"
+            sheet, rowIndex++, headerStyle, "Banco", "Fecha de depósito", "Monto", "Socio/Puesto", "Comprobante", "Moneda"
         );
 
-        BigDecimal total = BigDecimal.ZERO;
+        Map<String, BigDecimal> totalsByCurrency = new LinkedHashMap<>();
         for (BankExchange exchange : exchanges) {
             AccountReceivable accountReceivable = exchange.getAccountReceivable();
             String target = accountReceivable.getMember() != null
@@ -327,15 +367,26 @@ public class ReportService implements IReportService {
             ExcelReportWriter.setCell(row, 2, exchange.getAmount(), currencyStyle);
             ExcelReportWriter.setCell(row, 3, target);
             ExcelReportWriter.setCell(row, 4, exchange.getReceipt().getCorrelativeNumber());
-            total = total.add(exchange.getAmount());
+            ExcelReportWriter.setCell(row, 5, exchange.getCurrency().getCode());
+            totalsByCurrency.merge(exchange.getCurrency().getCode(), exchange.getAmount(), BigDecimal::add);
         }
 
-        Row totalRow = sheet.createRow(rowIndex);
-        ExcelReportWriter.setCell(totalRow, 1, "TOTAL");
-        totalRow.getCell(1).setCellStyle(totalStyle);
-        ExcelReportWriter.setCell(totalRow, 2, total, totalStyle);
+        if (totalsByCurrency.isEmpty()) {
+            Row totalRow = sheet.createRow(rowIndex);
+            ExcelReportWriter.setCell(totalRow, 1, "TOTAL");
+            totalRow.getCell(1).setCellStyle(totalStyle);
+            ExcelReportWriter.setCell(totalRow, 2, BigDecimal.ZERO, totalStyle);
+        } else {
+            for (Map.Entry<String, BigDecimal> entry : totalsByCurrency.entrySet()) {
+                Row totalRow = sheet.createRow(rowIndex++);
+                ExcelReportWriter.setCell(totalRow, 1, "TOTAL");
+                totalRow.getCell(1).setCellStyle(totalStyle);
+                ExcelReportWriter.setCell(totalRow, 2, entry.getValue(), totalStyle);
+                ExcelReportWriter.setCell(totalRow, 5, entry.getKey());
+            }
+        }
 
-        ExcelReportWriter.autoSizeColumns(sheet, 5);
+        ExcelReportWriter.autoSizeColumns(sheet, 6);
         return ExcelReportWriter.toBytes(workbook);
     }
 }

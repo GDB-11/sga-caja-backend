@@ -1,5 +1,6 @@
 package com.cibertec.sga.expense.domain.model;
 
+import com.cibertec.sga.currency.domain.model.Currency;
 import com.cibertec.sga.expensereason.domain.model.ExpenseReason;
 import com.cibertec.sga.expensestatus.domain.model.ExpenseStatus;
 import com.cibertec.sga.provider.domain.model.Provider;
@@ -26,6 +27,7 @@ public final class Expense {
     private final Receipt receipt;
     private final ExpenseBulkUploadRef bulkUpload;
     private final CreatedByRef createdBy;
+    private final Currency currency;
 
     private Expense(Builder builder) {
         this.uuid = builder.uuid;
@@ -38,6 +40,7 @@ public final class Expense {
         this.status = builder.status;
         this.receipt = builder.receipt;
         this.bulkUpload = builder.bulkUpload;
+        this.currency = builder.currency;
         this.createdBy = builder.createdBy;
     }
 
@@ -85,6 +88,10 @@ public final class Expense {
         return createdBy;
     }
 
+    public Currency getCurrency() {
+        return currency;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -101,6 +108,7 @@ public final class Expense {
         private Receipt receipt;
         private ExpenseBulkUploadRef bulkUpload;
         private CreatedByRef createdBy;
+        private Currency currency;
 
         public Builder uuid(UUID uuid) {
             this.uuid = uuid;
@@ -157,6 +165,11 @@ public final class Expense {
             return this;
         }
 
+        public Builder currency(Currency currency) {
+            this.currency = currency;
+            return this;
+        }
+
         public Expense build() {
             if (documentNumber == null || documentNumber.isBlank()) {
                 throw new IllegalArgumentException("El número de documento es obligatorio");
@@ -175,6 +188,9 @@ public final class Expense {
             }
             if (status == null) {
                 throw new IllegalArgumentException("El estado del egreso es obligatorio");
+            }
+            if (currency == null) {
+                throw new IllegalArgumentException("La moneda del egreso es obligatoria");
             }
             return new Expense(this);
         }

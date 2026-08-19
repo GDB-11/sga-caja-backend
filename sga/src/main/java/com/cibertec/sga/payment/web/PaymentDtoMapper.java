@@ -25,7 +25,8 @@ public class PaymentDtoMapper {
             payment.getPaymentDate(),
             payment.getTotalAmount(),
             payment.getDetails().stream().map(this::toResponse).toList(),
-            new PaymentResponse.CreatedByRef(payment.getCreatedBy().uuid(), payment.getCreatedBy().username())
+            new PaymentResponse.CreatedByRef(payment.getCreatedBy().uuid(), payment.getCreatedBy().username()),
+            new PaymentResponse.CurrencyRef(payment.getCurrency().getUuid(), payment.getCurrency().getCode(), payment.getCurrency().getName())
         );
     }
 
@@ -35,7 +36,10 @@ public class PaymentDtoMapper {
 
     public PaymentTotalResponse toResponse(PaymentTotal paymentTotal) {
         return new PaymentTotalResponse(
-            paymentTotal.accountReceivables().stream().map(this::toItem).toList(), paymentTotal.total()
+            paymentTotal.accountReceivables().stream().map(this::toItem).toList(), paymentTotal.total(),
+            new PaymentTotalResponse.CurrencyRef(
+                paymentTotal.currency().getUuid(), paymentTotal.currency().getCode(), paymentTotal.currency().getName()
+            )
         );
     }
 

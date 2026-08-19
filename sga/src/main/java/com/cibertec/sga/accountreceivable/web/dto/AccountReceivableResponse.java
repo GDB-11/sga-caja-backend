@@ -12,7 +12,8 @@ public record AccountReceivableResponse(
     LocalDate periodStartDate,
     LocalDate periodEndDate,
     BigDecimal amount,
-    StatusRef status
+    StatusRef status,
+    CurrencyRef currency
 ) {
     public record ServiceRef(UUID uuid, String name, boolean consumptionBased) {
     }
@@ -24,5 +25,8 @@ public record AccountReceivableResponse(
     }
 
     public record StatusRef(UUID uuid, String name) {
+    }
+
+    public record CurrencyRef(UUID uuid, String code, String name) {
     }
 }

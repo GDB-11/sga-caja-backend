@@ -45,6 +45,9 @@ public class PaymentEntity {
     @Column(name = "TotalAmount", nullable = false)
     private BigDecimal totalAmount;
 
+    @Column(name = "CurrencyId", nullable = false)
+    private Long currencyId;
+
     @CreatedBy
     @Column(name = "CreatedBy", nullable = false, updatable = false)
     private Long createdBy;
@@ -61,6 +64,7 @@ public class PaymentEntity {
         this.uuid = builder.uuid;
         this.receiptId = builder.receiptId;
         this.totalAmount = builder.totalAmount;
+        this.currencyId = builder.currencyId;
     }
 
     public Long getId() {
@@ -83,6 +87,10 @@ public class PaymentEntity {
         return totalAmount;
     }
 
+    public Long getCurrencyId() {
+        return currencyId;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -96,6 +104,7 @@ public class PaymentEntity {
         private UUID uuid;
         private Long receiptId;
         private BigDecimal totalAmount;
+        private Long currencyId;
 
         public Builder id(Long id) {
             this.id = id;
@@ -114,6 +123,11 @@ public class PaymentEntity {
 
         public Builder totalAmount(BigDecimal totalAmount) {
             this.totalAmount = totalAmount;
+            return this;
+        }
+
+        public Builder currencyId(Long currencyId) {
+            this.currencyId = currencyId;
             return this;
         }
 

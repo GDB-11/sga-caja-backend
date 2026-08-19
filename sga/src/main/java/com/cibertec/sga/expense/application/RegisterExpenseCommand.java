@@ -10,6 +10,7 @@ public record RegisterExpenseCommand(
     LocalDate expenseDate,
     BigDecimal amount,
     String associatedDocument,
-    UUID expenseReasonUuid
+    UUID expenseReasonUuid,
+    UUID currencyUuid
 ) {
 }

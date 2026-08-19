@@ -2,6 +2,7 @@ package com.cibertec.sga.bankexchange.domain.model;
 
 import com.cibertec.sga.accountreceivable.domain.model.AccountReceivable;
 import com.cibertec.sga.bank.domain.model.Bank;
+import com.cibertec.sga.currency.domain.model.Currency;
 import com.cibertec.sga.receipt.domain.model.Receipt;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -20,6 +21,7 @@ public final class BankExchange {
     private final Receipt receipt;
     private final LocalDate depositDate;
     private final BigDecimal amount;
+    private final Currency currency;
 
     private BankExchange(Builder builder) {
         this.uuid = builder.uuid;
@@ -28,6 +30,7 @@ public final class BankExchange {
         this.receipt = builder.receipt;
         this.depositDate = builder.depositDate;
         this.amount = builder.amount;
+        this.currency = builder.currency;
     }
 
     public UUID getUuid() {
@@ -54,6 +57,10 @@ public final class BankExchange {
         return amount;
     }
 
+    public Currency getCurrency() {
+        return currency;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -65,6 +72,7 @@ public final class BankExchange {
         private Receipt receipt;
         private LocalDate depositDate;
         private BigDecimal amount;
+        private Currency currency;
 
         public Builder uuid(UUID uuid) {
             this.uuid = uuid;
@@ -96,6 +104,11 @@ public final class BankExchange {
             return this;
         }
 
+        public Builder currency(Currency currency) {
+            this.currency = currency;
+            return this;
+        }
+
         public BankExchange build() {
             if (accountReceivable == null) {
                 throw new IllegalArgumentException("La cuenta por cobrar del canje es obligatoria");
@@ -111,6 +124,9 @@ public final class BankExchange {
             }
             if (amount == null || amount.signum() <= 0) {
                 throw new IllegalArgumentException("El monto del canje debe ser mayor a cero");
+            }
+            if (currency == null) {
+                throw new IllegalArgumentException("La moneda del canje es obligatoria");
             }
             return new BankExchange(this);
         }

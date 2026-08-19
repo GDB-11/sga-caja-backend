@@ -1,5 +1,6 @@
 package com.cibertec.sga.receipt.domain.model;
 
+import com.cibertec.sga.currency.domain.model.Currency;
 import com.cibertec.sga.receipttype.domain.model.ReceiptType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -20,6 +21,7 @@ public final class Receipt {
     private final LocalDate issueDate;
     private final BigDecimal amount;
     private final String description;
+    private final Currency currency;
 
     private Receipt(Builder builder) {
         this.uuid = builder.uuid;
@@ -28,6 +30,7 @@ public final class Receipt {
         this.issueDate = builder.issueDate;
         this.amount = builder.amount;
         this.description = builder.description;
+        this.currency = builder.currency;
     }
 
     public UUID getUuid() {
@@ -54,6 +57,10 @@ public final class Receipt {
         return description;
     }
 
+    public Currency getCurrency() {
+        return currency;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -65,6 +72,7 @@ public final class Receipt {
         private LocalDate issueDate;
         private BigDecimal amount;
         private String description;
+        private Currency currency;
 
         public Builder uuid(UUID uuid) {
             this.uuid = uuid;
@@ -96,12 +104,20 @@ public final class Receipt {
             return this;
         }
 
+        public Builder currency(Currency currency) {
+            this.currency = currency;
+            return this;
+        }
+
         public Receipt build() {
             if (receiptType == null) {
                 throw new IllegalArgumentException("El tipo de comprobante es obligatorio");
             }
             if (amount == null || amount.signum() <= 0) {
                 throw new IllegalArgumentException("El monto del comprobante debe ser mayor a cero");
+            }
+            if (currency == null) {
+                throw new IllegalArgumentException("La moneda del comprobante es obligatoria");
             }
             return new Receipt(this);
         }

@@ -1,6 +1,8 @@
 package com.cibertec.sga.payment.infrastructure.persistence;
 
 import com.cibertec.sga.accountreceivable.infrastructure.persistence.AccountReceivableJpaRepository;
+import com.cibertec.sga.currency.domain.model.Currency;
+import com.cibertec.sga.currency.infrastructure.persistence.CurrencyJpaRepository;
 import com.cibertec.sga.payment.domain.model.CreatedByRef;
 import com.cibertec.sga.payment.domain.model.Payment;
 import com.cibertec.sga.payment.domain.model.PaymentDetailRef;
@@ -22,15 +24,22 @@ public class PaymentMapper {
 
     private final ReceiptJpaRepository receiptJpaRepository;
     private final AccountReceivableJpaRepository accountReceivableJpaRepository;
+    private final CurrencyJpaRepository currencyJpaRepository;
 
-    public PaymentMapper(ReceiptJpaRepository receiptJpaRepository, AccountReceivableJpaRepository accountReceivableJpaRepository) {
+    public PaymentMapper(
+        ReceiptJpaRepository receiptJpaRepository,
+        AccountReceivableJpaRepository accountReceivableJpaRepository,
+        CurrencyJpaRepository currencyJpaRepository
+    ) {
         this.receiptJpaRepository = receiptJpaRepository;
         this.accountReceivableJpaRepository = accountReceivableJpaRepository;
+        this.currencyJpaRepository = currencyJpaRepository;
     }
 
-    public PaymentEntity toNewEntity(Receipt receipt, BigDecimal totalAmount) {
+    public PaymentEntity toNewEntity(Receipt receipt, BigDecimal totalAmount, Currency currency) {
         Long receiptId = receiptJpaRepository.findEntityByUuid(receipt.getUuid()).orElseThrow().getId();
-        return PaymentEntity.builder().receiptId(receiptId).totalAmount(totalAmount).build();
+        Long currencyId = currencyJpaRepository.findByUuid(currency.getUuid()).orElseThrow().getId();
+        return PaymentEntity.builder().receiptId(receiptId).totalAmount(totalAmount).currencyId(currencyId).build();
     }
 
     public PaymentDetailEntity toNewDetailEntity(Long paymentId, PaymentDetailRef detail) {
@@ -45,6 +54,11 @@ public class PaymentMapper {
 
     public Payment toDomain(PaymentRow row, List<PaymentDetailRef> details) {
         ReceiptType receiptType = ReceiptType.builder().uuid(row.getReceiptTypeUuid()).name(row.getReceiptTypeName()).build();
+        Currency currency = Currency.builder()
+            .uuid(row.getCurrencyUuid())
+            .code(row.getCurrencyCode())
+            .name(row.getCurrencyName())
+            .build();
         Receipt receipt = Receipt.builder()
             .uuid(row.getReceiptUuid())
             .receiptType(receiptType)
@@ -52,6 +66,7 @@ public class PaymentMapper {
             .issueDate(row.getReceiptIssueDate())
             .amount(row.getReceiptAmount())
             .description(row.getReceiptDescription())
+            .currency(currency)
             .build();
         return Payment.builder()
             .uuid(row.getUuid())
@@ -60,6 +75,7 @@ public class PaymentMapper {
             .totalAmount(row.getTotalAmount())
             .details(details)
             .createdBy(new CreatedByRef(row.getCreatedByUuid(), row.getCreatedByUsername()))
+            .currency(currency)
             .build();
     }
 }

@@ -8,7 +8,7 @@ import com.cibertec.sga.common.result.ErrorType;
  */
 public sealed interface PaymentError extends DomainError
     permits PaymentError.NotFound, PaymentError.EmptySelection, PaymentError.AccountReceivableNotFound,
-    PaymentError.AccountReceivableNotPending {
+    PaymentError.AccountReceivableNotPending, PaymentError.MixedCurrency {
 
     record NotFound(String uuid) implements PaymentError {
         @Override
@@ -75,6 +75,23 @@ public sealed interface PaymentError extends DomainError
         @Override
         public ErrorType type() {
             return ErrorType.CONFLICT;
+        }
+    }
+
+    record MixedCurrency() implements PaymentError {
+        @Override
+        public String code() {
+            return "PAYMENT_MIXED_CURRENCY";
+        }
+
+        @Override
+        public String message() {
+            return "Las cuentas por cobrar seleccionadas deben tener la misma moneda";
+        }
+
+        @Override
+        public ErrorType type() {
+            return ErrorType.VALIDATION;
         }
     }
 }

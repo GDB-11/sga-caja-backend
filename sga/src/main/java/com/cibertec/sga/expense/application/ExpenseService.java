@@ -1,6 +1,8 @@
 package com.cibertec.sga.expense.application;
 
 import com.cibertec.sga.common.result.Result;
+import com.cibertec.sga.currency.domain.model.Currency;
+import com.cibertec.sga.currency.domain.repository.ICurrencyRepository;
 import com.cibertec.sga.expense.domain.error.ExpenseError;
 import com.cibertec.sga.expense.domain.model.Expense;
 import com.cibertec.sga.expense.domain.model.ExpenseBulkUploadRef;
@@ -43,6 +45,7 @@ public class ExpenseService implements IExpenseService {
     private final IExpenseStatusRepository expenseStatusRepository;
     private final IReceiptRepository receiptRepository;
     private final IReceiptTypeRepository receiptTypeRepository;
+    private final ICurrencyRepository currencyRepository;
 
     public ExpenseService(
         IExpenseRepository expenseRepository,
@@ -51,7 +54,8 @@ public class ExpenseService implements IExpenseService {
         IExpenseReasonRepository expenseReasonRepository,
         IExpenseStatusRepository expenseStatusRepository,
         IReceiptRepository receiptRepository,
-        IReceiptTypeRepository receiptTypeRepository
+        IReceiptTypeRepository receiptTypeRepository,
+        ICurrencyRepository currencyRepository
     ) {
         this.expenseRepository = expenseRepository;
         this.expenseBulkUploadRepository = expenseBulkUploadRepository;
@@ -60,6 +64,7 @@ public class ExpenseService implements IExpenseService {
         this.expenseStatusRepository = expenseStatusRepository;
         this.receiptRepository = receiptRepository;
         this.receiptTypeRepository = receiptTypeRepository;
+        this.currencyRepository = currencyRepository;
     }
 
     @Override
@@ -78,6 +83,11 @@ public class ExpenseService implements IExpenseService {
             return Result.failure(new ExpenseError.ExpenseReasonNotFound(command.expenseReasonUuid().toString()));
         }
 
+        var currencyOpt = currencyRepository.findByUuid(command.currencyUuid());
+        if (currencyOpt.isEmpty()) {
+            return Result.failure(new ExpenseError.CurrencyNotFound(command.currencyUuid().toString()));
+        }
+
         ExpenseStatus pendingStatus = expenseStatusRepository.findByName(STATUS_PENDING).orElseThrow();
 
         Expense expense = Expense.builder()
@@ -88,6 +98,7 @@ public class ExpenseService implements IExpenseService {
             .associatedDocument(command.associatedDocument())
             .expenseReason(expenseReasonOpt.get())
             .status(pendingStatus)
+            .currency(currencyOpt.get())
             .build();
 
         return Result.success(expenseRepository.insert(expense));
@@ -117,7 +128,12 @@ public class ExpenseService implements IExpenseService {
                 errors.add("Fila " + row.rowNumber() + ": motivo de egreso no encontrado: " + row.expenseReasonName());
                 continue;
             }
-            validated.add(new ValidatedRow(row, providerOpt.get(), expenseReasonOpt.get()));
+            Optional<Currency> currencyOpt = currencyRepository.findByCode(row.currencyCode());
+            if (currencyOpt.isEmpty()) {
+                errors.add("Fila " + row.rowNumber() + ": moneda no encontrada: " + row.currencyCode());
+                continue;
+            }
+            validated.add(new ValidatedRow(row, providerOpt.get(), expenseReasonOpt.get(), currencyOpt.get()));
         }
 
         if (!errors.isEmpty()) {
@@ -137,13 +153,14 @@ public class ExpenseService implements IExpenseService {
                 .expenseReason(validatedRow.expenseReason())
                 .status(pendingStatus)
                 .bulkUpload(bulkUpload)
+                .currency(validatedRow.currency())
                 .build())
             .toList();
 
         return Result.success(expenseRepository.insertAll(expenses));
     }
 
-    private record ValidatedRow(BulkExpenseRow row, Provider provider, ExpenseReason expenseReason) {
+    private record ValidatedRow(BulkExpenseRow row, Provider provider, ExpenseReason expenseReason, Currency currency) {
     }
 
     private Optional<Provider> findActiveProviderByName(String name) {
@@ -190,7 +207,9 @@ public class ExpenseService implements IExpenseService {
         }
 
         ReceiptType expenseReceiptType = receiptTypeRepository.findByName(RECEIPT_TYPE_EXPENSE).orElseThrow();
-        Receipt receipt = receiptRepository.insert(Receipt.builder().receiptType(expenseReceiptType).amount(expense.getAmount()).build());
+        Receipt receipt = receiptRepository.insert(
+            Receipt.builder().receiptType(expenseReceiptType).amount(expense.getAmount()).currency(expense.getCurrency()).build()
+        );
 
         ExpenseStatus processedStatus = expenseStatusRepository.findByName(STATUS_PROCESSED).orElseThrow();
         return Result.success(expenseRepository.markProcessed(uuid, processedStatus, receipt));

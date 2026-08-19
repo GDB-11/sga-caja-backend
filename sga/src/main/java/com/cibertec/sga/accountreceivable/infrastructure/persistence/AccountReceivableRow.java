@@ -24,11 +24,11 @@ public interface AccountReceivableRow {
 
     String getChargeTargetTypeName();
 
-    UUID getCurrencyUuid();
+    UUID getServiceCurrencyUuid();
 
-    String getCurrencyCode();
+    String getServiceCurrencyCode();
 
-    String getCurrencyName();
+    String getServiceCurrencyName();
 
     Boolean getServiceIsConsumptionBased();
 
@@ -55,4 +55,10 @@ public interface AccountReceivableRow {
     UUID getStatusUuid();
 
     String getStatusName();
+
+    UUID getCurrencyUuid();
+
+    String getCurrencyCode();
+
+    String getCurrencyName();
 }

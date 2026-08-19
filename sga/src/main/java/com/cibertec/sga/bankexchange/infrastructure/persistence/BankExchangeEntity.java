@@ -50,6 +50,9 @@ public class BankExchangeEntity {
     @Column(name = "Amount", nullable = false)
     private BigDecimal amount;
 
+    @Column(name = "CurrencyId", nullable = false)
+    private Long currencyId;
+
     @CreatedBy
     @Column(name = "CreatedBy", nullable = false, updatable = false)
     private Long createdBy;
@@ -69,6 +72,7 @@ public class BankExchangeEntity {
         this.receiptId = builder.receiptId;
         this.depositDate = builder.depositDate;
         this.amount = builder.amount;
+        this.currencyId = builder.currencyId;
     }
 
     public Long getId() {
@@ -99,6 +103,10 @@ public class BankExchangeEntity {
         return amount;
     }
 
+    public Long getCurrencyId() {
+        return currencyId;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -115,6 +123,7 @@ public class BankExchangeEntity {
         private Long receiptId;
         private LocalDate depositDate;
         private BigDecimal amount;
+        private Long currencyId;
 
         public Builder id(Long id) {
             this.id = id;
@@ -148,6 +157,11 @@ public class BankExchangeEntity {
 
         public Builder amount(BigDecimal amount) {
             this.amount = amount;
+            return this;
+        }
+
+        public Builder currencyId(Long currencyId) {
+            this.currencyId = currencyId;
             return this;
         }
 

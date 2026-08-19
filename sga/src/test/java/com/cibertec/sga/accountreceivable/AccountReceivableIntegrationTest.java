@@ -280,8 +280,19 @@ class AccountReceivableIntegrationTest extends AbstractIntegrationTest {
                  "stageCodes": [1], "uniqueMembers": false}
                 """.formatted(memberServiceUuid))
         ).andExpect(status().isCreated()).andReturn();
-        String memberUuid = objectMapper.readTree(generated.getResponse().getContentAsString())
-            .get(0).get("member").get("uuid").asString();
+        // generate-by-member targets all active members in the given stages (which may include
+        // leftover members from other non-transactional test fixtures sharing the same container),
+        // so filter by full name to isolate the receivable belonging to the member this test created.
+        String memberUuid = null;
+        for (JsonNode node : objectMapper.readTree(generated.getResponse().getContentAsString())) {
+            if (node.get("member").get("fullName").asString().equals("Rosa Vega")) {
+                memberUuid = node.get("member").get("uuid").asString();
+                break;
+            }
+        }
+        if (memberUuid == null) {
+            throw new IllegalStateException("No se encontró la cuenta por cobrar generada para Rosa Vega");
+        }
 
         mockMvc.perform(get(BASE_URL + "/summary").param("memberUuid", memberUuid).header("Authorization", authHeader))
             .andExpect(status().isOk())

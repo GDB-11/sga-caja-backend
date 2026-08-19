@@ -66,6 +66,9 @@ public class ExpenseEntity {
     @Column(name = "ReceiptId")
     private Long receiptId;
 
+    @Column(name = "CurrencyId", nullable = false)
+    private Long currencyId;
+
     @CreatedBy
     @Column(name = "CreatedBy", nullable = false, updatable = false)
     private Long createdBy;
@@ -97,6 +100,7 @@ public class ExpenseEntity {
         this.expenseStatusId = builder.expenseStatusId;
         this.expenseBulkUploadId = builder.expenseBulkUploadId;
         this.receiptId = builder.receiptId;
+        this.currencyId = builder.currencyId;
     }
 
     public Long getId() {
@@ -151,6 +155,10 @@ public class ExpenseEntity {
         this.receiptId = receiptId;
     }
 
+    public Long getCurrencyId() {
+        return currencyId;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -175,6 +183,7 @@ public class ExpenseEntity {
         private Long expenseStatusId;
         private Long expenseBulkUploadId;
         private Long receiptId;
+        private Long currencyId;
 
         public Builder id(Long id) {
             this.id = id;
@@ -228,6 +237,11 @@ public class ExpenseEntity {
 
         public Builder receiptId(Long receiptId) {
             this.receiptId = receiptId;
+            return this;
+        }
+
+        public Builder currencyId(Long currencyId) {
+            this.currencyId = currencyId;
             return this;
         }
 

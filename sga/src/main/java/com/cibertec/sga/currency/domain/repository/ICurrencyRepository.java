@@ -13,4 +13,6 @@ public interface ICurrencyRepository {
     List<Currency> findAll();
 
     Optional<Currency> findByUuid(UUID uuid);
+
+    Optional<Currency> findByCode(String code);
 }

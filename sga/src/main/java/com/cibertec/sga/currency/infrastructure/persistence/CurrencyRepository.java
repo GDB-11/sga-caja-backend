@@ -27,4 +27,9 @@ public class CurrencyRepository implements ICurrencyRepository {
     public Optional<Currency> findByUuid(UUID uuid) {
         return jpaRepository.findByUuid(uuid).map(mapper::toDomain);
     }
+
+    @Override
+    public Optional<Currency> findByCode(String code) {
+        return jpaRepository.findByCode(code).map(mapper::toDomain);
+    }
 }

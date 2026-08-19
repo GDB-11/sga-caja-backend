@@ -58,6 +58,9 @@ public class AccountReceivableEntity {
     @Column(name = "AccountReceivableStatusId", nullable = false)
     private Long accountReceivableStatusId;
 
+    @Column(name = "CurrencyId", nullable = false)
+    private Long currencyId;
+
     @CreatedBy
     @Column(name = "CreatedBy", nullable = false, updatable = false)
     private Long createdBy;
@@ -87,6 +90,7 @@ public class AccountReceivableEntity {
         this.periodEndDate = builder.periodEndDate;
         this.amount = builder.amount;
         this.accountReceivableStatusId = builder.accountReceivableStatusId;
+        this.currencyId = builder.currencyId;
     }
 
     public Long getId() {
@@ -133,6 +137,10 @@ public class AccountReceivableEntity {
         this.accountReceivableStatusId = accountReceivableStatusId;
     }
 
+    public Long getCurrencyId() {
+        return currencyId;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -155,6 +163,7 @@ public class AccountReceivableEntity {
         private LocalDate periodEndDate;
         private BigDecimal amount;
         private Long accountReceivableStatusId;
+        private Long currencyId;
 
         public Builder id(Long id) {
             this.id = id;
@@ -198,6 +207,11 @@ public class AccountReceivableEntity {
 
         public Builder accountReceivableStatusId(Long accountReceivableStatusId) {
             this.accountReceivableStatusId = accountReceivableStatusId;
+            return this;
+        }
+
+        public Builder currencyId(Long currencyId) {
+            this.currencyId = currencyId;
             return this;
         }
 

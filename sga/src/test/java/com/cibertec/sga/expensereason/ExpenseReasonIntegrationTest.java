@@ -43,7 +43,7 @@ class ExpenseReasonIntegrationTest extends AbstractIntegrationTest {
     void listReturnsSeededExpenseReasons() throws Exception {
         mockMvc.perform(get("/api/expense-reasons").header("Authorization", authHeader))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(5));
+            .andExpect(jsonPath("$.length()").value(12));
     }
 
     @Test

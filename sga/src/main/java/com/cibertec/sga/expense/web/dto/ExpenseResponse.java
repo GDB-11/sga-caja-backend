@@ -15,7 +15,8 @@ public record ExpenseResponse(
     StatusRef status,
     ReceiptRef receipt,
     BulkUploadRef bulkUpload,
-    CreatedByRef createdBy
+    CreatedByRef createdBy,
+    CurrencyRef currency
 ) {
     public record ProviderRef(UUID uuid, String name) {
     }
@@ -33,5 +34,8 @@ public record ExpenseResponse(
     }
 
     public record CreatedByRef(UUID uuid, String username) {
+    }
+
+    public record CurrencyRef(UUID uuid, String code, String name) {
     }
 }

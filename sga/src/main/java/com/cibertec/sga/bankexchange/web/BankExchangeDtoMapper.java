@@ -31,7 +31,10 @@ public class BankExchangeDtoMapper {
                 bankExchange.getReceipt().getCorrelativeNumber(), bankExchange.getReceipt().getIssueDate()
             ),
             bankExchange.getDepositDate(),
-            bankExchange.getAmount()
+            bankExchange.getAmount(),
+            new BankExchangeResponse.CurrencyRef(
+                bankExchange.getCurrency().getUuid(), bankExchange.getCurrency().getCode(), bankExchange.getCurrency().getName()
+            )
         );
     }
 

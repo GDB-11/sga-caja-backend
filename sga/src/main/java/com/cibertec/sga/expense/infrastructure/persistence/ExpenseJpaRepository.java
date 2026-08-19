@@ -26,12 +26,14 @@ public interface ExpenseJpaRepository extends JpaRepository<ExpenseEntity, Long>
                r."Uuid" AS receipt_uuid, r."CorrelativeNumber" AS receipt_correlative_number,
                r."IssueDate" AS receipt_issue_date, rt."Uuid" AS receipt_type_uuid, rt."Name" AS receipt_type_name,
                ebu."Uuid" AS bulk_upload_uuid, ebu."FileName" AS bulk_upload_file_name,
-               u."Uuid" AS created_by_uuid, u."Username" AS created_by_username
+               u."Uuid" AS created_by_uuid, u."Username" AS created_by_username,
+               cur."Uuid" AS currency_uuid, cur."Code" AS currency_code, cur."Name" AS currency_name
         FROM "Expense" e
         JOIN "Provider" p ON p."Id" = e."ProviderId"
         JOIN "ExpenseReason" er ON er."Id" = e."ExpenseReasonId"
         JOIN "ExpenseStatus" es ON es."Id" = e."ExpenseStatusId"
         JOIN "User" u ON u."Id" = e."CreatedBy"
+        JOIN "Currency" cur ON cur."Id" = e."CurrencyId"
         LEFT JOIN "Receipt" r ON r."Id" = e."ReceiptId"
         LEFT JOIN "ReceiptType" rt ON rt."Id" = r."ReceiptTypeId"
         LEFT JOIN "ExpenseBulkUpload" ebu ON ebu."Id" = e."ExpenseBulkUploadId"

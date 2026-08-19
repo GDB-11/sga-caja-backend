@@ -20,7 +20,7 @@ public class ReceiptRepository implements IReceiptRepository {
     @Override
     public Receipt insert(Receipt receipt) {
         ReceiptEntity saved = jpaRepository.save(mapper.toNewEntity(receipt));
-        return mapper.toDomain(saved, receipt.getReceiptType());
+        return mapper.toDomain(saved, receipt.getReceiptType(), receipt.getCurrency());
     }
 
     @Override

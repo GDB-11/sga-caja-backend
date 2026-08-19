@@ -1,5 +1,6 @@
 package com.cibertec.sga.payment.infrastructure.persistence;
 
+import com.cibertec.sga.currency.domain.model.Currency;
 import com.cibertec.sga.payment.domain.model.Payment;
 import com.cibertec.sga.payment.domain.model.PaymentDetailRef;
 import com.cibertec.sga.payment.domain.repository.IPaymentRepository;
@@ -26,8 +27,8 @@ public class PaymentRepository implements IPaymentRepository {
     }
 
     @Override
-    public Payment create(Receipt receipt, BigDecimal totalAmount, List<PaymentDetailRef> details) {
-        PaymentEntity savedPayment = paymentJpaRepository.save(mapper.toNewEntity(receipt, totalAmount));
+    public Payment create(Receipt receipt, BigDecimal totalAmount, Currency currency, List<PaymentDetailRef> details) {
+        PaymentEntity savedPayment = paymentJpaRepository.save(mapper.toNewEntity(receipt, totalAmount, currency));
 
         List<PaymentDetailEntity> detailEntities =
             details.stream().map(detail -> mapper.toNewDetailEntity(savedPayment.getId(), detail)).toList();

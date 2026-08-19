@@ -1,5 +1,6 @@
 package com.cibertec.sga.payment.domain.model;
 
+import com.cibertec.sga.currency.domain.model.Currency;
 import com.cibertec.sga.receipt.domain.model.Receipt;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -18,6 +19,7 @@ public final class Payment {
     private final BigDecimal totalAmount;
     private final List<PaymentDetailRef> details;
     private final CreatedByRef createdBy;
+    private final Currency currency;
 
     private Payment(Builder builder) {
         this.uuid = builder.uuid;
@@ -26,6 +28,7 @@ public final class Payment {
         this.totalAmount = builder.totalAmount;
         this.details = builder.details;
         this.createdBy = builder.createdBy;
+        this.currency = builder.currency;
     }
 
     public UUID getUuid() {
@@ -52,6 +55,10 @@ public final class Payment {
         return createdBy;
     }
 
+    public Currency getCurrency() {
+        return currency;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -63,6 +70,7 @@ public final class Payment {
         private BigDecimal totalAmount;
         private List<PaymentDetailRef> details = List.of();
         private CreatedByRef createdBy;
+        private Currency currency;
 
         public Builder uuid(UUID uuid) {
             this.uuid = uuid;
@@ -94,6 +102,11 @@ public final class Payment {
             return this;
         }
 
+        public Builder currency(Currency currency) {
+            this.currency = currency;
+            return this;
+        }
+
         public Payment build() {
             if (receipt == null) {
                 throw new IllegalArgumentException("El comprobante del pago es obligatorio");
@@ -103,6 +116,9 @@ public final class Payment {
             }
             if (details == null || details.isEmpty()) {
                 throw new IllegalArgumentException("El pago debe incluir al menos una cuenta por cobrar");
+            }
+            if (currency == null) {
+                throw new IllegalArgumentException("La moneda del pago es obligatoria");
             }
             return new Payment(this);
         }

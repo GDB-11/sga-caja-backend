@@ -55,6 +55,9 @@ public class ReceiptEntity {
     @Column(name = "Description")
     private String description;
 
+    @Column(name = "CurrencyId", nullable = false)
+    private Long currencyId;
+
     @CreatedBy
     @Column(name = "UserId", nullable = false, updatable = false)
     private Long userId;
@@ -72,6 +75,7 @@ public class ReceiptEntity {
         this.receiptTypeId = builder.receiptTypeId;
         this.amount = builder.amount;
         this.description = builder.description;
+        this.currencyId = builder.currencyId;
     }
 
     public Long getId() {
@@ -102,6 +106,10 @@ public class ReceiptEntity {
         return description;
     }
 
+    public Long getCurrencyId() {
+        return currencyId;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -116,6 +124,7 @@ public class ReceiptEntity {
         private Long receiptTypeId;
         private BigDecimal amount;
         private String description;
+        private Long currencyId;
 
         public Builder id(Long id) {
             this.id = id;
@@ -139,6 +148,11 @@ public class ReceiptEntity {
 
         public Builder description(String description) {
             this.description = description;
+            return this;
+        }
+
+        public Builder currencyId(Long currencyId) {
+            this.currencyId = currencyId;
             return this;
         }
 

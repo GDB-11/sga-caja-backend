@@ -7,6 +7,7 @@ import com.cibertec.sga.bank.domain.model.Bank;
 import com.cibertec.sga.bank.domain.repository.IBankRepository;
 import com.cibertec.sga.bank.infrastructure.persistence.BankJpaRepository;
 import com.cibertec.sga.bankexchange.domain.model.BankExchange;
+import com.cibertec.sga.currency.infrastructure.persistence.CurrencyJpaRepository;
 import com.cibertec.sga.receipt.domain.model.Receipt;
 import com.cibertec.sga.receipt.infrastructure.persistence.ReceiptJpaRepository;
 import com.cibertec.sga.receipttype.domain.model.ReceiptType;
@@ -29,31 +30,36 @@ public class BankExchangeMapper {
     private final ReceiptJpaRepository receiptJpaRepository;
     private final IAccountReceivableRepository accountReceivableRepository;
     private final IBankRepository bankRepository;
+    private final CurrencyJpaRepository currencyJpaRepository;
 
     public BankExchangeMapper(
         AccountReceivableJpaRepository accountReceivableJpaRepository,
         BankJpaRepository bankJpaRepository,
         ReceiptJpaRepository receiptJpaRepository,
         IAccountReceivableRepository accountReceivableRepository,
-        IBankRepository bankRepository
+        IBankRepository bankRepository,
+        CurrencyJpaRepository currencyJpaRepository
     ) {
         this.accountReceivableJpaRepository = accountReceivableJpaRepository;
         this.bankJpaRepository = bankJpaRepository;
         this.receiptJpaRepository = receiptJpaRepository;
         this.accountReceivableRepository = accountReceivableRepository;
         this.bankRepository = bankRepository;
+        this.currencyJpaRepository = currencyJpaRepository;
     }
 
     public BankExchangeEntity toNewEntity(AccountReceivable accountReceivable, Bank bank, Receipt receipt, LocalDate depositDate) {
         Long accountReceivableId = accountReceivableJpaRepository.findEntityByUuid(accountReceivable.getUuid()).orElseThrow().getId();
         Long bankId = bankJpaRepository.findEntityByUuid(bank.getUuid()).orElseThrow().getId();
         Long receiptId = receiptJpaRepository.findEntityByUuid(receipt.getUuid()).orElseThrow().getId();
+        Long currencyId = currencyJpaRepository.findByUuid(accountReceivable.getCurrency().getUuid()).orElseThrow().getId();
         return BankExchangeEntity.builder()
             .accountReceivableId(accountReceivableId)
             .bankId(bankId)
             .receiptId(receiptId)
             .depositDate(depositDate)
             .amount(accountReceivable.getAmount())
+            .currencyId(currencyId)
             .build();
     }
 
@@ -69,6 +75,7 @@ public class BankExchangeMapper {
             .issueDate(row.getReceiptIssueDate())
             .amount(row.getReceiptAmount())
             .description(row.getReceiptDescription())
+            .currency(accountReceivable.getCurrency())
             .build();
 
         return BankExchange.builder()
@@ -78,6 +85,7 @@ public class BankExchangeMapper {
             .receipt(receipt)
             .depositDate(row.getDepositDate())
             .amount(row.getAmount())
+            .currency(accountReceivable.getCurrency())
             .build();
     }
 }

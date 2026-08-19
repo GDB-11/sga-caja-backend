@@ -20,7 +20,9 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
  * evitar el choque coma-decimal/coma-delimitador de CSV en locale es-PE (decidido 2026-08-09).
  * Columnas esperadas, en orden, con encabezado en la primera fila: {@code DocumentNumber},
  * {@code ProviderName}, {@code ExpenseDate}, {@code Amount}, {@code AssociatedDocument}
- * (opcional), {@code ExpenseReason}.
+ * (opcional), {@code ExpenseReason}, {@code Moneda} (código de moneda, ej. {@code PEN}/{@code
+ * USD} — la moneda no tiene una fuente natural para un egreso, a diferencia de las cuentas por
+ * cobrar que la heredan del {@code Service}).
  */
 final class ExpenseBulkFileParser {
 
@@ -30,6 +32,7 @@ final class ExpenseBulkFileParser {
     private static final int COL_AMOUNT = 3;
     private static final int COL_ASSOCIATED_DOCUMENT = 4;
     private static final int COL_EXPENSE_REASON = 5;
+    private static final int COL_CURRENCY_CODE = 6;
 
     private ExpenseBulkFileParser() {
     }
@@ -59,7 +62,7 @@ final class ExpenseBulkFileParser {
     }
 
     private static boolean isBlankRow(Row row) {
-        for (int col = 0; col <= COL_EXPENSE_REASON; col++) {
+        for (int col = 0; col <= COL_CURRENCY_CODE; col++) {
             Cell cell = row.getCell(col);
             if (cell != null && cell.getCellType() != CellType.BLANK) {
                 return false;
@@ -77,9 +80,10 @@ final class ExpenseBulkFileParser {
             BigDecimal amount = readAmount(row, COL_AMOUNT);
             String associatedDocument = readString(row, COL_ASSOCIATED_DOCUMENT);
             String expenseReasonName = readString(row, COL_EXPENSE_REASON);
+            String currencyCode = readString(row, COL_CURRENCY_CODE);
 
             String blankFieldError = firstBlankFieldError(
-                excelRowNumber, documentNumber, providerName, expenseDate, amount, expenseReasonName
+                excelRowNumber, documentNumber, providerName, expenseDate, amount, expenseReasonName, currencyCode
             );
             if (blankFieldError != null) {
                 errors.add(blankFieldError);
@@ -87,7 +91,7 @@ final class ExpenseBulkFileParser {
             }
 
             return Optional.of(new BulkExpenseRow(
-                excelRowNumber, documentNumber, providerName, expenseDate, amount, associatedDocument, expenseReasonName
+                excelRowNumber, documentNumber, providerName, expenseDate, amount, associatedDocument, expenseReasonName, currencyCode
             ));
         } catch (RuntimeException e) {
             errors.add("Fila " + excelRowNumber + ": " + e.getMessage());
@@ -97,7 +101,7 @@ final class ExpenseBulkFileParser {
 
     private static String firstBlankFieldError(
         int excelRowNumber, String documentNumber, String providerName, LocalDate expenseDate,
-        BigDecimal amount, String expenseReasonName
+        BigDecimal amount, String expenseReasonName, String currencyCode
     ) {
         if (documentNumber == null || documentNumber.isBlank()) {
             return "Fila " + excelRowNumber + ": el número de documento es obligatorio";
@@ -113,6 +117,9 @@ final class ExpenseBulkFileParser {
         }
         if (expenseReasonName == null || expenseReasonName.isBlank()) {
             return "Fila " + excelRowNumber + ": el motivo del egreso es obligatorio";
+        }
+        if (currencyCode == null || currencyCode.isBlank()) {
+            return "Fila " + excelRowNumber + ": la moneda es obligatoria";
         }
         return null;
     }

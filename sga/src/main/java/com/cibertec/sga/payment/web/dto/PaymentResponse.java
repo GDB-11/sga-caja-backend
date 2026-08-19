@@ -11,7 +11,8 @@ public record PaymentResponse(
     LocalDate paymentDate,
     BigDecimal totalAmount,
     List<DetailRef> details,
-    CreatedByRef createdBy
+    CreatedByRef createdBy,
+    CurrencyRef currency
 ) {
     public record ReceiptRef(UUID uuid, String receiptTypeName, Long correlativeNumber, LocalDate issueDate, BigDecimal amount) {
     }
@@ -20,5 +21,8 @@ public record PaymentResponse(
     }
 
     public record CreatedByRef(UUID uuid, String username) {
+    }
+
+    public record CurrencyRef(UUID uuid, String code, String name) {
     }
 }

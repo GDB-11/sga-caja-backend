@@ -11,11 +11,15 @@ public record BankExchangeResponse(
     BankRef bank,
     ReceiptRef receipt,
     LocalDate depositDate,
-    BigDecimal amount
+    BigDecimal amount,
+    CurrencyRef currency
 ) {
     public record BankRef(UUID uuid, String name) {
     }
 
     public record ReceiptRef(UUID uuid, String receiptTypeName, Long correlativeNumber, LocalDate issueDate) {
+    }
+
+    public record CurrencyRef(UUID uuid, String code, String name) {
     }
 }

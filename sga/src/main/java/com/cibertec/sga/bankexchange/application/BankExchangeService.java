@@ -75,10 +75,16 @@ public class BankExchangeService implements IBankExchangeService {
         if (!bank.isActive()) {
             return Result.failure(new BankExchangeError.BankInactive(command.bankUuid().toString()));
         }
+        if (!bank.getCurrency().getUuid().equals(accountReceivable.getCurrency().getUuid())) {
+            return Result.failure(new BankExchangeError.CurrencyMismatch(
+                accountReceivable.getCurrency().getCode(), bank.getCurrency().getCode()
+            ));
+        }
 
         ReceiptType bankTransactionType = receiptTypeRepository.findByName(RECEIPT_TYPE_BANK_TRANSACTION).orElseThrow();
         Receipt receipt = receiptRepository.insert(
-            Receipt.builder().receiptType(bankTransactionType).amount(accountReceivable.getAmount()).build()
+            Receipt.builder().receiptType(bankTransactionType).amount(accountReceivable.getAmount())
+                .currency(accountReceivable.getCurrency()).build()
         );
 
         BankExchange bankExchange = bankExchangeRepository.create(accountReceivable, bank, receipt, command.depositDate());

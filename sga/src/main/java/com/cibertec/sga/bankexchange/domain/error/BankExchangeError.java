@@ -9,7 +9,7 @@ import com.cibertec.sga.common.result.ErrorType;
 public sealed interface BankExchangeError extends DomainError
     permits BankExchangeError.NotFound, BankExchangeError.AccountReceivableNotFound,
     BankExchangeError.AccountReceivableNotMemberTarget, BankExchangeError.AccountReceivableNotPending,
-    BankExchangeError.BankNotFound, BankExchangeError.BankInactive {
+    BankExchangeError.BankNotFound, BankExchangeError.BankInactive, BankExchangeError.CurrencyMismatch {
 
     record NotFound(String uuid) implements BankExchangeError {
         @Override
@@ -105,6 +105,24 @@ public sealed interface BankExchangeError extends DomainError
         @Override
         public String message() {
             return "El banco está inactivo: " + uuid;
+        }
+
+        @Override
+        public ErrorType type() {
+            return ErrorType.VALIDATION;
+        }
+    }
+
+    record CurrencyMismatch(String accountReceivableCurrency, String bankCurrency) implements BankExchangeError {
+        @Override
+        public String code() {
+            return "BANK_EXCHANGE_CURRENCY_MISMATCH";
+        }
+
+        @Override
+        public String message() {
+            return "La moneda de la cuenta por cobrar (" + accountReceivableCurrency
+                + ") no coincide con la moneda del banco (" + bankCurrency + ")";
         }
 
         @Override

@@ -4,7 +4,10 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
-public record PaymentTotalResponse(List<Item> items, BigDecimal total) {
+public record PaymentTotalResponse(List<Item> items, BigDecimal total, CurrencyRef currency) {
     public record Item(UUID accountReceivableUuid, BigDecimal amount) {
+    }
+
+    public record CurrencyRef(UUID uuid, String code, String name) {
     }
 }

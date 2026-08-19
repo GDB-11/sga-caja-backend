@@ -8,6 +8,7 @@ import com.cibertec.sga.accountreceivablestatus.domain.model.AccountReceivableSt
 import com.cibertec.sga.accountreceivablestatus.infrastructure.persistence.AccountReceivableStatusJpaRepository;
 import com.cibertec.sga.chargetargettype.domain.model.ChargeTargetType;
 import com.cibertec.sga.currency.domain.model.Currency;
+import com.cibertec.sga.currency.infrastructure.persistence.CurrencyJpaRepository;
 import com.cibertec.sga.member.infrastructure.persistence.MemberJpaRepository;
 import com.cibertec.sga.recurrencetype.domain.model.RecurrenceType;
 import com.cibertec.sga.service.domain.model.Service;
@@ -29,17 +30,20 @@ public class AccountReceivableMapper {
     private final MemberJpaRepository memberJpaRepository;
     private final StallJpaRepository stallJpaRepository;
     private final AccountReceivableStatusJpaRepository accountReceivableStatusJpaRepository;
+    private final CurrencyJpaRepository currencyJpaRepository;
 
     public AccountReceivableMapper(
         ServiceJpaRepository serviceJpaRepository,
         MemberJpaRepository memberJpaRepository,
         StallJpaRepository stallJpaRepository,
-        AccountReceivableStatusJpaRepository accountReceivableStatusJpaRepository
+        AccountReceivableStatusJpaRepository accountReceivableStatusJpaRepository,
+        CurrencyJpaRepository currencyJpaRepository
     ) {
         this.serviceJpaRepository = serviceJpaRepository;
         this.memberJpaRepository = memberJpaRepository;
         this.stallJpaRepository = stallJpaRepository;
         this.accountReceivableStatusJpaRepository = accountReceivableStatusJpaRepository;
+        this.currencyJpaRepository = currencyJpaRepository;
     }
 
     public AccountReceivable toDomain(AccountReceivableRow row) {
@@ -51,17 +55,17 @@ public class AccountReceivableMapper {
             .uuid(row.getChargeTargetTypeUuid())
             .name(row.getChargeTargetTypeName())
             .build();
-        Currency currency = Currency.builder()
-            .uuid(row.getCurrencyUuid())
-            .code(row.getCurrencyCode())
-            .name(row.getCurrencyName())
+        Currency serviceCurrency = Currency.builder()
+            .uuid(row.getServiceCurrencyUuid())
+            .code(row.getServiceCurrencyCode())
+            .name(row.getServiceCurrencyName())
             .build();
         Service service = Service.builder()
             .uuid(row.getServiceUuid())
             .name(row.getServiceName())
             .recurrenceType(recurrenceType)
             .chargeTargetType(chargeTargetType)
-            .currency(currency)
+            .currency(serviceCurrency)
             .consumptionBased(row.getServiceIsConsumptionBased())
             .cost(row.getServiceCost())
             .unitCost(row.getServiceUnitCost())
@@ -76,6 +80,12 @@ public class AccountReceivableMapper {
             .name(row.getStatusName())
             .build();
 
+        Currency currency = Currency.builder()
+            .uuid(row.getCurrencyUuid())
+            .code(row.getCurrencyCode())
+            .name(row.getCurrencyName())
+            .build();
+
         return AccountReceivable.builder()
             .uuid(row.getUuid())
             .service(service)
@@ -85,6 +95,7 @@ public class AccountReceivableMapper {
             .periodEndDate(row.getPeriodEndDate())
             .amount(row.getAmount())
             .status(status)
+            .currency(currency)
             .build();
     }
 
@@ -97,7 +108,12 @@ public class AccountReceivableMapper {
             .periodEndDate(accountReceivable.getPeriodEndDate())
             .amount(accountReceivable.getAmount())
             .accountReceivableStatusId(resolveStatusId(accountReceivable))
+            .currencyId(resolveCurrencyId(accountReceivable))
             .build();
+    }
+
+    private Long resolveCurrencyId(AccountReceivable accountReceivable) {
+        return currencyJpaRepository.findByUuid(accountReceivable.getCurrency().getUuid()).orElseThrow().getId();
     }
 
     public AccountReceivableMovement toMovement(AccountReceivableSummaryRow row) {

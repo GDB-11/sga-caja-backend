@@ -14,6 +14,7 @@ public record BulkExpenseRow(
     LocalDate expenseDate,
     BigDecimal amount,
     String associatedDocument,
-    String expenseReasonName
+    String expenseReasonName,
+    String currencyCode
 ) {
 }

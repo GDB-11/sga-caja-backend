@@ -1,5 +1,7 @@
 package com.cibertec.sga.expense.infrastructure.persistence;
 
+import com.cibertec.sga.currency.domain.model.Currency;
+import com.cibertec.sga.currency.infrastructure.persistence.CurrencyJpaRepository;
 import com.cibertec.sga.expense.domain.model.CreatedByRef;
 import com.cibertec.sga.expense.domain.model.Expense;
 import com.cibertec.sga.expense.domain.model.ExpenseBulkUploadRef;
@@ -29,19 +31,22 @@ public class ExpenseMapper {
     private final ExpenseStatusJpaRepository expenseStatusJpaRepository;
     private final ExpenseBulkUploadJpaRepository expenseBulkUploadJpaRepository;
     private final ReceiptJpaRepository receiptJpaRepository;
+    private final CurrencyJpaRepository currencyJpaRepository;
 
     public ExpenseMapper(
         ProviderJpaRepository providerJpaRepository,
         ExpenseReasonJpaRepository expenseReasonJpaRepository,
         ExpenseStatusJpaRepository expenseStatusJpaRepository,
         ExpenseBulkUploadJpaRepository expenseBulkUploadJpaRepository,
-        ReceiptJpaRepository receiptJpaRepository
+        ReceiptJpaRepository receiptJpaRepository,
+        CurrencyJpaRepository currencyJpaRepository
     ) {
         this.providerJpaRepository = providerJpaRepository;
         this.expenseReasonJpaRepository = expenseReasonJpaRepository;
         this.expenseStatusJpaRepository = expenseStatusJpaRepository;
         this.expenseBulkUploadJpaRepository = expenseBulkUploadJpaRepository;
         this.receiptJpaRepository = receiptJpaRepository;
+        this.currencyJpaRepository = currencyJpaRepository;
     }
 
     public ExpenseEntity toNewEntity(Expense expense) {
@@ -54,6 +59,7 @@ public class ExpenseMapper {
             .expenseReasonId(expenseReasonJpaRepository.findByUuid(expense.getExpenseReason().getUuid()).orElseThrow().getId())
             .expenseStatusId(expenseStatusJpaRepository.findByUuid(expense.getStatus().getUuid()).orElseThrow().getId())
             .expenseBulkUploadId(resolveBulkUploadId(expense))
+            .currencyId(currencyJpaRepository.findByUuid(expense.getCurrency().getUuid()).orElseThrow().getId())
             .build();
     }
 
@@ -90,12 +96,19 @@ public class ExpenseMapper {
             .name(row.getStatusName())
             .build();
 
+        Currency currency = Currency.builder()
+            .uuid(row.getCurrencyUuid())
+            .code(row.getCurrencyCode())
+            .name(row.getCurrencyName())
+            .build();
+
         Receipt receipt = row.getReceiptUuid() == null ? null : Receipt.builder()
             .uuid(row.getReceiptUuid())
             .receiptType(ReceiptType.builder().uuid(row.getReceiptTypeUuid()).name(row.getReceiptTypeName()).build())
             .correlativeNumber(row.getReceiptCorrelativeNumber())
             .issueDate(row.getReceiptIssueDate())
             .amount(row.getAmount())
+            .currency(currency)
             .build();
 
         ExpenseBulkUploadRef bulkUpload = row.getBulkUploadUuid() == null
@@ -114,6 +127,7 @@ public class ExpenseMapper {
             .receipt(receipt)
             .bulkUpload(bulkUpload)
             .createdBy(new CreatedByRef(row.getCreatedByUuid(), row.getCreatedByUsername()))
+            .currency(currency)
             .build();
     }
 }

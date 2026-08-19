@@ -54,4 +54,10 @@ public interface ExpenseRow {
     UUID getCreatedByUuid();
 
     String getCreatedByUsername();
+
+    UUID getCurrencyUuid();
+
+    String getCurrencyCode();
+
+    String getCurrencyName();
 }

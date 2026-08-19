@@ -29,14 +29,15 @@ public class ExpenseDtoMapper {
             expense.getBulkUpload() == null ? null : new ExpenseResponse.BulkUploadRef(
                 expense.getBulkUpload().uuid(), expense.getBulkUpload().fileName()
             ),
-            new ExpenseResponse.CreatedByRef(expense.getCreatedBy().uuid(), expense.getCreatedBy().username())
+            new ExpenseResponse.CreatedByRef(expense.getCreatedBy().uuid(), expense.getCreatedBy().username()),
+            new ExpenseResponse.CurrencyRef(expense.getCurrency().getUuid(), expense.getCurrency().getCode(), expense.getCurrency().getName())
         );
     }
 
     public RegisterExpenseCommand toCommand(RegisterExpenseRequest request) {
         return new RegisterExpenseCommand(
             request.documentNumber(), request.providerUuid(), request.expenseDate(), request.amount(),
-            request.associatedDocument(), request.expenseReasonUuid()
+            request.associatedDocument(), request.expenseReasonUuid(), request.currencyUuid()
         );
     }
 }

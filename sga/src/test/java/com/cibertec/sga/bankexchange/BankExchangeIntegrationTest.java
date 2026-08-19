@@ -32,6 +32,7 @@ class BankExchangeIntegrationTest extends AbstractIntegrationTest {
     private String authHeader;
     private String cashierAuthHeader;
     private String bankUuid;
+    private String secondCurrencyBankUuid;
     private String memberServiceUuid;
     private String stallServiceUuid;
     private String businessTypeUuid;
@@ -65,7 +66,9 @@ class BankExchangeIntegrationTest extends AbstractIntegrationTest {
         String stallChargeTargetTypeUuid = findUuidByName(chargeTargetTypesJson, "Stall");
 
         MvcResult currencies = mockMvc.perform(get("/api/currencies").header("Authorization", authHeader)).andReturn();
-        String currencyUuid = objectMapper.readTree(currencies.getResponse().getContentAsString()).get(0).get("uuid").asString();
+        JsonNode currenciesJson = objectMapper.readTree(currencies.getResponse().getContentAsString());
+        String currencyUuid = currenciesJson.get(0).get("uuid").asString();
+        String secondCurrencyUuid = currenciesJson.get(1).get("uuid").asString();
 
         memberServiceUuid = createFixedCostService("Cuota Socio Canje Test", recurrenceTypeUuid, memberChargeTargetTypeUuid, currencyUuid);
         stallServiceUuid = createFixedCostService("Mantenimiento Canje Test", recurrenceTypeUuid, stallChargeTargetTypeUuid, currencyUuid);
@@ -83,6 +86,13 @@ class BankExchangeIntegrationTest extends AbstractIntegrationTest {
                 """.formatted(currencyUuid))
         ).andExpect(status().isCreated()).andReturn();
         bankUuid = objectMapper.readTree(bank.getResponse().getContentAsString()).get("uuid").asString();
+
+        MvcResult secondCurrencyBank = mockMvc.perform(
+            post("/api/banks").header("Authorization", authHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"name": "Interbank USD", "accountNumber": "BX-ACC-002", "cci": "00319400BX2", "currencyUuid": "%s"}
+                """.formatted(secondCurrencyUuid))
+        ).andExpect(status().isCreated()).andReturn();
+        secondCurrencyBankUuid = objectMapper.readTree(secondCurrencyBank.getResponse().getContentAsString()).get("uuid").asString();
     }
 
     private String findUuidByName(JsonNode array, String name) {
@@ -221,5 +231,22 @@ class BankExchangeIntegrationTest extends AbstractIntegrationTest {
         )
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.error").value("BANK_EXCHANGE_ACCOUNT_RECEIVABLE_NOT_PENDING"));
+    }
+
+    @Test
+    void createWithCurrencyMismatchBetweenReceivableAndBankReturnsBadRequest() throws Exception {
+        String receivableUuid = createMemberReceivable("BX-004", "Elsa", "Vega");
+
+        mockMvc.perform(
+            post(BASE_URL).header("Authorization", cashierAuthHeader).contentType(MediaType.APPLICATION_JSON).content("""
+                {"accountReceivableUuid": "%s", "bankUuid": "%s", "depositDate": "2026-02-10"}
+                """.formatted(receivableUuid, secondCurrencyBankUuid))
+        )
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.error").value("BANK_EXCHANGE_CURRENCY_MISMATCH"));
+
+        mockMvc.perform(get("/api/account-receivables/{uuid}", receivableUuid).header("Authorization", authHeader))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status.name").value("Pending"));
     }
 }
